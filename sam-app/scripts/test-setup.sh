@@ -54,15 +54,21 @@ export AWS_ACCESS_KEY_ID=dummy
 export AWS_SECRET_ACCESS_KEY=dummy
 export AWS_DEFAULT_REGION=us-east-1
 
-# Step 5: Start SAM local Lambda (for authorizer testing)
+# Step 5: Start SAM local API (for full integration testing)
+echo "🚀 Starting SAM local API..."
+sam local start-api --port 3000 --skip-pull-image --warm-containers EAGER &
+SAM_API_PID=$!
+
+# Step 6: Start SAM local Lambda (for authorizer testing)
 echo "🚀 Starting SAM local Lambda..."
 sam local start-lambda --port 3001 --skip-pull-image --warm-containers EAGER &
-SAM_PID=$!
+SAM_LAMBDA_PID=$!
 
-# Step 6: Check SAM local is running
+# Step 7: Check SAM services are running
+check_service "http://localhost:3000" "SAM Local API"
 check_service "http://localhost:3001/2015-03-31/functions" "SAM Local Lambda"
 
-# Step 7: Install dependencies and Playwright
+# Step 8: Install dependencies and Playwright
 echo "📦 Installing dependencies..."
 cd opa-poc
 npm install
@@ -75,17 +81,21 @@ echo -e "${GREEN}🎉 Test environment is ready!${NC}"
 echo ""
 echo "Available services:"
 echo "  📊 OPA Server: http://localhost:8181"
+echo "  🌐 SAM Local API: http://localhost:3000"
 echo "  🔧 SAM Local Lambda: http://localhost:3001"
 echo ""
 echo "To run tests:"
 echo "  npm run test:e2e              # Run all E2E tests"
 echo "  npm run test:e2e:ui           # Run tests with UI"
 echo ""
+echo "To test backend function:"
+echo "  curl -H 'Authorization: Bearer <jwt>' http://localhost:3000/user/alice"
+echo ""
 echo "To stop services:"
-echo "  kill $SAM_PID                 # Stop SAM local"
+echo "  kill $SAM_API_PID $SAM_LAMBDA_PID  # Stop SAM services"
 echo "  docker-compose down           # Stop OPA"
 
-# Keep script running to maintain SAM local
+# Keep script running to maintain SAM services
 echo "Press Ctrl+C to stop all services..."
-trap "echo 'Stopping services...'; kill $SAM_PID 2>/dev/null; cd ..; docker-compose down; exit" INT
-wait $SAM_PID
+trap "echo 'Stopping services...'; kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null; cd ..; docker-compose down; exit" INT
+wait $SAM_API_PID
