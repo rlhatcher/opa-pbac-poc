@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: OPA Lambda Authorizer for Policy-Based Access Control
+
+# Global configuration for all serverless functions
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures:
+      - arm64  # Better price/performance than x86_64
+    MemorySize: 256
+    Timeout: 30
+    Environment:
+      Variables:
+        NODE_ENV: production
+        LOG_LEVEL: info
+    Tracing: Active  # Enable X-Ray tracing
+    Tags:
+      Project: OPA-PBAC
+      Environment: !Ref Environment
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+  OpaEndpoint:
+    Type: String
+    Default: http://host.docker.internal:8181
+    Description: OPA server endpoint URL
+
+Resources:
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: opa-poc
+      Handler: app.lambdaHandler
+      FunctionName: !Sub "${AWS::StackName}-opa-authorizer"
+      Description: Lambda authorizer using Open Policy Agent for PBAC
+      Environment:
+        Variables:
+          OPA_ENDPOINT: !Ref OpaEndpoint
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt AuthorizerDLQ.Arn
+
+  # Dead Letter Queue for failed authorizations
+  AuthorizerDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-authorizer-dlq"
+      MessageRetentionPeriod: 1209600  # 14 days
+      Tags:
+        - Key: Project
+          Value: OPA-PBAC
+
+  # CloudWatch Log Group with retention
+  AuthorizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AuthorizerFunction}"
+      RetentionInDays: 30
+
+Outputs:
+  AuthorizerFunctionArn:
+    Description: ARN of the Lambda Authorizer Function
+    Value: !GetAtt AuthorizerFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-AuthorizerFunctionArn"
+
+  AuthorizerFunctionName:
+    Description: Name of the Lambda Authorizer Function
+    Value: !Ref AuthorizerFunction
+    Export:
+      Name: !Sub "${AWS::StackName}-AuthorizerFunctionName"

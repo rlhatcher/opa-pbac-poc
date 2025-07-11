@@ -1,0 +1,9 @@
+{
+  "type": "REQUEST",
+  "methodArn": "arn:aws:execute-api:region:account-id:api-id/dev/GET/user/alice",
+  "headers": {
+    "authorization": "Bearer <your-jwt>"
+  },
+  "httpMethod": "GET",
+  "path": "/user/alice"
+}
