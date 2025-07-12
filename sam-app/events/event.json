@@ -17,7 +17,7 @@
     "Accept": "application/json",
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "en-US,en;q=0.9",
-    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXSwiaWF0IjoxNjQwOTk1MjAwLCJleHAiOjE2NDA5OTg4MDB9.example",
+    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXSwiaWF0IjoxNzIxNjAyMjAwLCJleHAiOjE3MjE2MDU4MDB9.example",
     "Cache-Control": "no-cache",
     "CloudFront-Forwarded-Proto": "https",
     "CloudFront-Is-Desktop-Viewer": "true",
@@ -62,7 +62,7 @@
       "principalId": "alice",
       "claims": {
         "sub": "alice",
-        "roles": "user"
+        "roles": ["user"]
       }
     }
   }

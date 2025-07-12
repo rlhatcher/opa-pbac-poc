@@ -8,14 +8,26 @@ const app = express()
 const port = 3002
 
 // Load static preferences data
-const preferencesData = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'static-preferences.json'), 'utf8')
-)
+let preferencesData = {}
+try {
+  preferencesData = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'static-preferences.json'), 'utf8')
+  )
+} catch (error) {
+  console.error('Failed to load preferences data:', error.message)
+  process.exit(1)
+}
 
 // Load OpenAPI spec for Swagger UI
-const openApiSpec = yaml.load(
-  fs.readFileSync(path.join(__dirname, 'preferences-api.yaml'), 'utf8')
-)
+let openApiSpec = {}
+try {
+  openApiSpec = yaml.load(
+    fs.readFileSync(path.join(__dirname, 'preferences-api.yaml'), 'utf8')
+  )
+} catch (error) {
+  console.error('Failed to load OpenAPI spec:', error.message)
+  process.exit(1)
+}
 
 // Middleware for JSON parsing
 app.use(express.json())
@@ -56,10 +68,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'preferences-api' })
 })
 
-// Get expert preferences
-app.get('/preferences/:expertId', (req, res) => {
-  const { expertId } = req.params
+const crypto = require('crypto')
 
+// Secure token comparison function
+function secureCompare(a, b) {
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
+
+// Get expert preferences endpoint
+app.get('/experts/:expertId/preferences', (req, res) => {
   // Simple auth check
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -69,9 +87,11 @@ app.get('/preferences/:expertId', (req, res) => {
   }
 
   const token = authHeader.substring(7)
-  if (token !== 'mock-token') {
+  if (!secureCompare(token, 'mock-token')) {
     return res.status(401).json({ error: 'Invalid token' })
   }
+
+  const expertId = req.params.expertId
 
   // Return static data for known experts
   if (preferencesData[expertId]) {

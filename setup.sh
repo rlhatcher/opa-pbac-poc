@@ -44,7 +44,10 @@ check_service "http://localhost:3003/" "Swagger UI"
 
 # Step 3: Load DNC data
 echo -e "${BLUE}📊 Loading DNC data...${NC}"
-./scripts/load-dnc-data.sh || echo -e "${YELLOW}⚠️  Data loading had issues, continuing...${NC}"
+if ! ./scripts/load-dnc-data.sh; then
+    echo -e "${YELLOW}⚠️  Data loading failed - some DNC tests may fail${NC}"
+    echo -e "${YELLOW}    Check scripts/load-dnc-data.sh for details${NC}"
+fi
 
 # Step 4: Build SAM application
 echo -e "${BLUE}🔨 Building SAM application...${NC}"
@@ -128,8 +131,34 @@ echo -e "${GREEN}✅ Mock Services + Documentation${NC}"
 echo -e "${GREEN}✅ Lambda Authorizer Integration${NC}"
 echo -e "${GREEN}✅ Comprehensive Test Suite${NC}"
 
-# Keep script running to maintain SAM services
-echo ""
+cleanup() {
+    echo
+    echo "🛑 Stopping services..."
+    
+    # Kill SAM processes
+    if kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null; then
+        echo "✅ SAM processes stopped"
+    else
+        echo "⚠️  SAM processes may have already stopped"
+        # Fallback: kill any remaining sam local processes
+        pkill -f "sam local start" 2>/dev/null || true
+    fi
+
+    # Stop Docker services
+    if docker-compose down; then
+        echo "✅ Docker services stopped"
+    else
+        echo "⚠️  Failed to stop Docker services"
+    fi
+
+    echo "🏁 Cleanup complete"
+    exit
+}
+
+trap cleanup INT
+
+# Wait for either process to exit
+wait -n $SAM_API_PID $SAM_LAMBDA_PID
 echo "Press Ctrl+C to stop all services..."
 trap "echo 'Stopping services...'; kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true; docker-compose down; exit" INT
 wait $SAM_API_PID
