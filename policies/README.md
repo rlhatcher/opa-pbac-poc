@@ -132,7 +132,7 @@ Countries where experts cannot be contacted:
 
 The policy makes HTTP calls to a preferences service:
 
-**Endpoint:** `GET /preferences/{expert_id}`
+**Endpoint:** `GET /experts/{expert_id}/preferences`
 
 **Response Format:**
 

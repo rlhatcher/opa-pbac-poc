@@ -45,7 +45,7 @@ paths:
                     type: string
                     example: '1.0.0'
 
-  /preferences/{expertId}:
+  /experts/{expertId}/preferences:
     get:
       summary: Get expert preferences
       description: |

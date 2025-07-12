@@ -17,36 +17,31 @@ This directory contains Playwright-based end-to-end tests for the OPA Lambda Aut
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Integrated POC Testing
 
 ```bash
-cd opa-poc
-npm install
-npm run test:setup  # Install Playwright browsers
+# From project root - this runs everything including tests
+./setup.sh
 ```
 
-### 2. Start Test Environment
+The setup script automatically:
+
+- Starts all services (OPA, Preferences, SAM Local)
+- Installs dependencies and Playwright browsers
+- Runs comprehensive test suite
+- Shows results and available services
+
+### Manual Test Runs (after setup.sh)
 
 ```bash
 # From sam-app directory
-./scripts/test-setup.sh
-```
+cd sam-app
 
-This script will:
+# Run all tests again
+npx playwright test
 
-- Start OPA server via Docker Compose
-- Build and start SAM local API
-- Wait for both services to be ready
-- Install Playwright if needed
-
-### 3. Run Tests
-
-```bash
-# Run all E2E tests
-npm run test:e2e
-
-# Run tests with interactive UI
-npm run test:e2e:ui
+# Run with interactive UI
+npx playwright test --ui
 
 # Run specific test file
 npx playwright test dnc-policy.spec.js
@@ -99,7 +94,8 @@ curl -X POST http://localhost:3000/2015-03-31/functions/function/invocations \
 
 ## Troubleshooting
 
-- **OPA not responding**: Check `docker-compose logs opa`
-- **SAM local issues**: Check `sam logs` or restart with `sam local start-api`
+- **Setup script fails**: Check prerequisites and run `./setup.sh` again
+- **Services not responding**: Restart with `./setup.sh` from project root
 - **Test failures**: Run with `--headed` flag to see browser interactions
-- **Port conflicts**: Ensure ports 3000 (SAM) and 8181 (OPA) are available
+- **Port conflicts**: Ensure ports 3000, 3001, 8181, 3002, 3003 are available
+- **Playwright issues**: Run `npx playwright install` to reinstall browsers

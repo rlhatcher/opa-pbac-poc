@@ -24,14 +24,44 @@ JWT-based access control for API endpoints:
 ## Architecture
 
 ```text
-API Request → Lambda Authorizer → OPA Policy Engine → Decision
-                                       ↓
-                    [Company Data] [Country Data] [Preferences API]
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   API Gateway   │───▶│ Lambda Authorizer│───▶│  OPA Server     │
+│                 │    │                  │    │  :8181          │
+└─────────────────┘    └──────────────────┘    └─────────┬───────┘
+                                                         │
+                       ┌─────────────────────────────────┼─────────────────┐
+                       │                                 ▼                 │
+                       │                    ┌─────────────────────┐        │
+                       │                    │   DNC Policy        │        │
+                       │                    │   Authorization     │        │
+                       │                    │   Policy            │        │
+                       │                    └─────────┬───────────┘        │
+                       │                              │                    │
+                       │              ┌───────────────┼───────────────┐    │
+                       │              ▼               ▼               ▼    │
+                       │    ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+                       │    │ Company     │ │ Country     │ │ Preferences ││
+                       │    │ Data        │ │ Data        │ │ Service     ││
+                       │    │ (Runtime)   │ │ (Build-time)│ │ :3002       ││
+                       │    └─────────────┘ └─────────────┘ └─────────────┘│
+                       │                                                   │
+                       └───────────────────────────────────────────────────┘
+                                              OPA Container
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            Supporting Services                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐          │
+│  │ Preferences API │    │   Swagger UI    │    │  SAM Local      │          │
+│  │ (Express.js)    │    │   :3003         │    │  API: :3000     │          │
+│  │ Static Mock     │    │                 │    │  Lambda: :3001  │          │
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
 
-**One command to set up everything:**
+One command to set up everything
 
 ```bash
 ./setup.sh
@@ -48,9 +78,9 @@ This will:
 
 ### Services Running
 
-- **OPA Server**: http://localhost:8181
-- **Preferences Service**: http://localhost:3002 (static mock API)
-- **Swagger UI**: http://localhost:3003 (interactive API documentation)
+- **OPA Server**: `http://localhost:8181`
+- **Preferences Service**: `http://localhost:3002` (static mock API)
+- **Swagger UI**: `http://localhost:3003` (interactive API documentation)
 
 ### Test Commands
 
@@ -61,7 +91,7 @@ curl -X POST http://localhost:8181/v1/data/policies/dnc/can_contact \
   -d '{"input":{"expert":{"id":"expert_999"},"project":{"type":"pharmaceuticals"}}}'
 
 # Test preferences service
-curl -H "Authorization: Bearer mock-token" http://localhost:3002/preferences/expert_999
+curl -H "Authorization: Bearer mock-token" http://localhost:3002/experts/expert_999/preferences
 
 # Run comprehensive tests
 cd sam-app && npx playwright test dnc-policy.spec.js
@@ -110,7 +140,7 @@ This POC demonstrates **three different data loading patterns**:
 
 ## Project Structure
 
-```
+```text
 ├── setup.sh                    # One-command setup
 ├── docker-compose.yml          # OPA + Preferences service
 ├── opa/
