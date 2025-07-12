@@ -14,8 +14,10 @@ The DNC policy evaluates three main sources of restrictions:
 
 ```
 policies/
-├── dnc.rego                    # DNC (Do Not Contact) policy rules
-├── authz.rego                  # Lambda authorizer policy rules
+├── dnc/
+│   └── dnc.rego                # DNC (Do Not Contact) policy rules
+├── authz/
+│   └── authz.rego              # Lambda authorizer policy rules
 └── data/
     ├── dnc_companies.json      # List of restricted companies
     ├── dnc_countries.json      # List of restricted countries

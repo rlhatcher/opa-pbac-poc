@@ -87,7 +87,7 @@ You can also test manually using the generated tokens:
 
 ```bash
 # Test OPA directly
-curl -X POST http://localhost:8181/v1/data/policies/allow \
+curl -X POST http://localhost:8181/v1/data/policies/authz/allow \
   -H "Content-Type: application/json" \
   -d '{"input": {"method": "GET", "path": ["user", "alice"], "token": {"payload": {"sub": "alice", "roles": ["user"]}}, "user_id": "alice"}}'
 

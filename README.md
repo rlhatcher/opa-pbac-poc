@@ -23,7 +23,7 @@ JWT-based access control for API endpoints:
 
 ## Architecture
 
-```
+```text
 API Request → Lambda Authorizer → OPA Policy Engine → Decision
                                        ↓
                     [Company Data] [Country Data] [Preferences API]
@@ -116,8 +116,10 @@ This POC demonstrates **three different data loading patterns**:
 ├── opa/
 │   └── Dockerfile              # Custom OPA image with build-time data
 ├── policies/
-│   ├── dnc.rego                # DNC policy rules
-│   ├── authz.rego              # Lambda authorizer policy rules
+│   ├── dnc/
+│   │   └── dnc.rego            # DNC policy rules
+│   ├── authz/
+│   │   └── authz.rego          # Lambda authorizer policy rules
 │   └── data/                   # Runtime data (companies, config)
 ├── mock-services/
 │   └── preferences-api.yaml    # OpenAPI specification

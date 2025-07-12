@@ -1,4 +1,4 @@
-package policies
+package policies.authz
 
 import rego.v1
 
@@ -14,5 +14,5 @@ allow if {
 
 # Allow access if user has admin role
 allow if {
-	input.token.payload.roles[_] == "admin"
+	"admin" in input.token.payload.roles
 }

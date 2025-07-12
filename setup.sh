@@ -6,6 +6,7 @@ set -e
 echo "🚀 OPA + Lambda Authorizer POC - Complete Setup"
 
 # Colors for output
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
@@ -52,32 +53,40 @@ fi
 # Step 4: Build SAM application
 echo -e "${BLUE}🔨 Building SAM application...${NC}"
 cd sam-app
-sam build
+if ! sam build; then
+    echo -e "${RED}❌ SAM build failed${NC}"
+    echo "Please check the SAM application configuration and try again"
+    exit 1
+fi
+echo -e "${GREEN}✅ SAM application built successfully${NC}"
 
 # Step 5: Set dummy AWS credentials for local testing
 echo -e "${BLUE}🔑 Setting up local AWS credentials...${NC}"
+unset AWS_PROFILE
 export AWS_ACCESS_KEY_ID=dummy
 export AWS_SECRET_ACCESS_KEY=dummy
 export AWS_DEFAULT_REGION=us-east-1
 
-# Step 6: Start SAM local services
+# Step 6: Clean up any existing SAM containers
+echo -e "${BLUE}🧹 Cleaning up existing SAM containers...${NC}"
+docker ps -q --filter "ancestor=public.ecr.aws/lambda/nodejs" | xargs -r docker stop 2>/dev/null || true
+docker ps -aq --filter "ancestor=public.ecr.aws/lambda/nodejs" | xargs -r docker rm 2>/dev/null || true
+
+# Step 7: Start SAM local services
 echo -e "${BLUE}🚀 Starting SAM local API...${NC}"
-sam local start-api --port 3000 --skip-pull-image --warm-containers EAGER &
+sam local start-api --port 3000 --skip-pull-image &
 SAM_API_PID=$!
 
 echo -e "${BLUE}🚀 Starting SAM local Lambda...${NC}"
-sam local start-lambda --port 3001 --skip-pull-image --warm-containers EAGER &
+sam local start-lambda --port 3001 --skip-pull-image &
 SAM_LAMBDA_PID=$!
 
-# Step 7: Check SAM services
+# Step 8: Check SAM services
 check_service "http://localhost:3000" "SAM Local API"
 check_service "http://localhost:3001/2015-03-31/functions" "SAM Local Lambda"
 
-cd ..
-
-# Step 8: Run comprehensive tests
+# Step 9: Run comprehensive tests
 echo -e "${BLUE}🧪 Running comprehensive tests...${NC}"
-cd sam-app
 
 # Install dependencies if needed
 if [ ! -d "opa-poc/node_modules" ]; then
@@ -90,8 +99,6 @@ fi
 # Run all tests
 echo "Running all Playwright tests..."
 npx playwright test --reporter=list
-
-cd ..
 
 # Step 9: Show what's available
 echo ""
@@ -111,7 +118,7 @@ echo "    -H 'Content-Type: application/json' \\"
 echo "    -d '{\"input\":{\"expert\":{\"id\":\"expert_999\"},\"project\":{\"type\":\"pharmaceuticals\"}}}'"
 echo ""
 echo "  # Test authorization policy"
-echo "  curl -X POST http://localhost:8181/v1/data/policies/allow \\"
+echo "  curl -X POST http://localhost:8181/v1/data/policies/authz/allow \\"
 echo "    -H 'Content-Type: application/json' \\"
 echo "    -d '{\"input\":{\"method\":\"GET\",\"path\":[\"user\",\"alice\"],\"token\":{\"payload\":{\"sub\":\"alice\",\"roles\":[\"user\"]}}}}'"
 echo ""
@@ -134,17 +141,29 @@ echo -e "${GREEN}✅ Comprehensive Test Suite${NC}"
 cleanup() {
     echo
     echo "🛑 Stopping services..."
-    
+
     # Kill SAM processes
-    if kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null; then
-        echo "✅ SAM processes stopped"
-    else
-        echo "⚠️  SAM processes may have already stopped"
-        # Fallback: kill any remaining sam local processes
-        pkill -f "sam local start" 2>/dev/null || true
+    if [ -n "$SAM_API_PID" ]; then
+        if kill $SAM_API_PID 2>/dev/null; then
+            echo "✅ SAM API process stopped"
+        else
+            echo "⚠️  SAM API process may have already stopped"
+        fi
     fi
 
-    # Stop Docker services
+    if [ -n "$SAM_LAMBDA_PID" ]; then
+        if kill $SAM_LAMBDA_PID 2>/dev/null; then
+            echo "✅ SAM Lambda process stopped"
+        else
+            echo "⚠️  SAM Lambda process may have already stopped"
+        fi
+    fi
+
+    # Fallback: kill any remaining sam local processes
+    pkill -f "sam local start" 2>/dev/null || true
+
+    # Stop Docker services (go back to root directory first)
+    cd ..
     if docker-compose down; then
         echo "✅ Docker services stopped"
     else
@@ -157,8 +176,14 @@ cleanup() {
 
 trap cleanup INT
 
-# Wait for either process to exit
-wait -n $SAM_API_PID $SAM_LAMBDA_PID
+# Wait for user interrupt (Ctrl+C) to stop services
 echo "Press Ctrl+C to stop all services..."
-trap "echo 'Stopping services...'; kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true; docker-compose down; exit" INT
-wait $SAM_API_PID
+
+# Keep the script running until interrupted
+while kill -0 $SAM_API_PID 2>/dev/null && kill -0 $SAM_LAMBDA_PID 2>/dev/null; do
+    sleep 1
+done
+
+# If we get here, one of the processes has died
+echo "⚠️  One of the SAM processes has stopped unexpectedly"
+cleanup

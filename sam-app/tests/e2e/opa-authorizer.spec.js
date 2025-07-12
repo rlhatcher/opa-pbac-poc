@@ -41,7 +41,7 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
@@ -60,7 +60,7 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
@@ -79,7 +79,7 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'admin'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
@@ -96,7 +96,7 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
