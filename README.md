@@ -1,26 +1,29 @@
-# OPA + DNC Policy POC
+# OPA PBAC Proof of Concept
 
-A proof-of-concept demonstrating an AWS API Gateway custom authorizer that calls a dockerized Open Policy Agent (OPA) server for "Do Not Contact" (DNC) policy enforcement.
+A comprehensive proof-of-concept demonstrating Policy-Based Access Control (PBAC) using Open Policy Agent (OPA) with AWS API Gateway custom authorizers and a complete monitoring dashboard.
+
+## 📚 Documentation Index
+
+- **[Policy Documentation](policies/README.md)** - DNC and authorization policy details
+- **[SAM Application](sam-app/README.md)** - Lambda authorizer, backend services, and testing
+- **[Mock Services](mock-services/README.md)** - Expert preferences API and Swagger UI
+- **[PAP Dashboard](pap-service/README.md)** - Policy administration interface and monitoring
+- **[Installation Guide](scripts/install.sh)** - Dependency installation script
 
 ## Overview
 
-This POC demonstrates two policy systems:
+This POC demonstrates a complete PBAC architecture with two distinct policy systems and comprehensive monitoring capabilities:
 
 ### 1. DNC (Do Not Contact) Policy
 
-Checks multiple data sources to determine if an expert can be contacted:
+A business logic policy that evaluates multiple data sources to determine if an expert can be contacted for a project:
 
 - **Input Validation** - Validates required fields and project types against known constants
 - **Company Restrictions** - Runtime data loaded via API calls
 - **Country Restrictions** - Build-time data baked into OPA container
 - **Expert Preferences** - External service calls via HTTP API
 
-**Enhanced Features:**
-
-- Built-in project type validation against known constants
-- Comprehensive input validation with helpful error messages
-
-### 2. Lambda Authorizer Policy
+### 2. Authorization Policy
 
 JWT-based access control for API Gateway endpoints with role-based authorization:
 
@@ -29,6 +32,15 @@ JWT-based access control for API Gateway endpoints with role-based authorization
 - **Method Validation** - Supports GET, PUT, PATCH operations
 - **Path-based Authorization** - Validates URL path structure and ownership
 - **JWT Token Processing** - Decodes and validates JWT payload for user identity and roles
+
+### 3. Policy Administration Point (PAP)
+
+A comprehensive dashboard providing real-time monitoring and management:
+
+- **PEP Interface** - Interactive policy testing forms
+- **PDP Monitoring** - Real-time OPA decision logs
+- **PIP Data Management** - Policy data source management
+- **Application Logs** - Backend service monitoring
 
 ## Architecture
 
@@ -71,35 +83,62 @@ The system demonstrates two distinct OPA policy use cases:
 │   │  Static Mock    │      │                 │      │ Lambda: :3001   │     │
 │   └─────────────────┘      └─────────────────┘      └─────────────────┘     │
 └─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PAP Dashboard (:5177)                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│   ┌─────────────────┬─────────────────┐                                     │
+│   │   Q1: PEP       │   Q2: PDP       │  PEP = Policy Enforcement Point    │
+│   │ Policy Testing  │ Decision Logs   │  PDP = Policy Decision Point       │
+│   │ • DNC Forms     │ • OPA Logs      │  PIP = Policy Information Point    │
+│   │ • Auth Forms    │ • Real-time     │  PAP = Policy Administration Point │
+│   ├─────────────────┼─────────────────┤                                     │
+│   │   Q3: PIP       │   Q4: App       │                                     │
+│   │ Data Management │ Service Logs    │                                     │
+│   │ • Companies     │ • Lambda Logs   │                                     │
+│   │ • Countries     │ • Auth Events   │                                     │
+│   └─────────────────┴─────────────────┘                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
 
-One command to set up everything
+### Prerequisites
+
+- Node.js 18+ and npm
+- Docker and Docker Compose
+- AWS SAM CLI (optional, for Lambda testing)
+
+### One Command Setup
 
 ```bash
 ./setup.sh
 ```
 
-This will:
+This command will:
 
 - Start OPA server and Preferences service (static mock + Swagger UI)
+- Build and start SAM Local API and Lambda services
+- Start PAP dashboard for monitoring and management
 - Load DNC data automatically
-- Test the policy integration
+- Run comprehensive tests
 - Show you what's available
 
 ## What You Get
 
 ### Services Running
 
-- **OPA Server**: `http://localhost:8181`
-- **Preferences Service**: `http://localhost:3002` (static mock API)
-- **Swagger UI**: `http://localhost:3003` (interactive API documentation)
+- **PDP** OPA Server: `http://localhost:8181` - Policy engine
+- **PIP** Preferences Service: `http://localhost:3002` - Static mock API
+- **PAP** Dashboard: `http://localhost:5177` - Policy administration interface
+- **PEP** SAM Local API: `http://localhost:3000` - API Gateway simulation
+- **Services** SAM Local Lambda: `http://localhost:3001` - Application services
+- **Swagger UI**: `http://localhost:3003` - Interactive API documentation
 
 ### Test Commands
 
 ```bash
-# Test DNC policy
+# Test DNC policy directly
 curl -X POST http://localhost:8181/v1/data/policies/dnc/can_contact \
   -H "Content-Type: application/json" \
   -d '{"input":{"expert":{"id":"expert_999"},"project":{"type":"pharmaceuticals"}}}'
@@ -107,8 +146,14 @@ curl -X POST http://localhost:8181/v1/data/policies/dnc/can_contact \
 # Test preferences service
 curl -H "Authorization: Bearer mock-token" http://localhost:3002/experts/expert_999/preferences
 
+# Test via API Gateway
+curl -X POST http://localhost:3000/policies/dnc \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{"input":{"expert":{"id":"expert_999"},"project":{"type":"pharmaceuticals"}}}'
+
 # Run comprehensive tests
-cd sam-app && npx playwright test dnc-policy.spec.js
+cd sam-app && npx playwright test
 ```
 
 ## Authorization System
@@ -159,15 +204,17 @@ The system expects JWT tokens with this payload structure:
 
 ## Key Features
 
-✅ **Static Mock Service** - Predictable API responses with Swagger UI documentation
-✅ **Complete Policy Testing** - 30 test cases covering all scenarios
-✅ **Real HTTP Integration** - OPA calls external preferences service
-✅ **Docker Compose Setup** - Everything containerized
-✅ **Comprehensive Documentation** - OpenAPI spec with examples
-✅ **Multiple Data Loading Patterns** - Demonstrates 4 different data loading approaches
-✅ **Build-time Constants** - Hardcoded validation sets for optimal performance
-✅ **Modern OPA Syntax** - Uses latest Rego v1 with `import rego.v1`
-✅ **Enhanced Validation** - Project type validation catches input errors early
+- **Static Mock Service** - Predictable API responses with Swagger UI documentation
+- **Complete Policy Testing** - 30 test cases covering all scenarios
+- **Real HTTP Integration** - OPA calls external preferences service
+- **Docker Compose Setup** - Everything containerized
+- **Comprehensive Documentation** - OpenAPI spec with examples
+- **Multiple Data Loading Patterns** - Demonstrates 4 different data loading approaches
+- **Build-time Constants** - Hardcoded validation sets for optimal performance
+- **Modern OPA Syntax** - Uses latest Rego v1 with `import rego.v1`
+- **Enhanced Validation** - Project type validation catches input errors early
+- **Real-time Monitoring** - Live policy decision logs and system monitoring
+- **Interactive Dashboard** - Complete PAP interface for policy management
 
 ## Data Loading Approaches
 
@@ -287,6 +334,9 @@ The policy leverages hardcoded constants for optimal performance:
 
 ```text
 ├── setup.sh                    # One-command setup
+├── scripts/
+│   ├── install.sh              # Dependency installation
+│   └── load-dnc-data.sh        # Runtime data loading utility
 ├── docker-compose.yml          # OPA + Preferences service
 ├── opa/
 │   └── Dockerfile              # Custom OPA image with build-time data
@@ -294,13 +344,18 @@ The policy leverages hardcoded constants for optimal performance:
 │   ├── dnc/
 │   │   └── dnc.rego            # DNC policy rules
 │   ├── authz/
-│   │   └── authz.rego          # Lambda authorizer policy rules
+│   │   └── authz.rego          # Authorization policy rules
 │   └── data/                   # Runtime data (companies, config)
 ├── mock-services/
-│   └── preferences-api.yaml    # OpenAPI specification
-├── sam-app/                    # Lambda authorizer (optional)
-└── scripts/
-    └── load-dnc-data.sh        # Runtime data loading utility
+│   ├── server.js               # Express.js mock server
+│   ├── preferences-api.yaml    # OpenAPI specification
+│   └── static-preferences.json # Test data
+├── sam-app/                    # Lambda authorizer and tests
+│   ├── opa-poc/                # Lambda functions
+│   └── tests/                  # Playwright E2E tests
+└── pap-service/                # Policy Administration Point
+    ├── server.js               # Backend server
+    └── frontend/               # React dashboard
 ```
 
 ## Stop Services
@@ -320,6 +375,7 @@ The POC uses:
 
 For detailed documentation, see:
 
-- [DNC Policy Details](policies/README.md)
-- [Preferences Service API](mock-services/README.md)
-- [SAM Lambda Setup](sam-app/README.md)
+- [Policy Documentation](policies/README.md) - DNC and authorization policy details
+- [Preferences Service API](mock-services/README.md) - Mock service documentation
+- [SAM Lambda Setup](sam-app/README.md) - Lambda authorizer and testing
+- [PAP Dashboard](pap-service/README.md) - Policy administration interface

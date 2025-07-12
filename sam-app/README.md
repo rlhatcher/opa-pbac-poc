@@ -1,22 +1,33 @@
-# OPA Lambda Authorizer POC
+# SAM Application - Lambda Authorizer and Testing
 
-This directory contains the AWS SAM application for the OPA-based Lambda authorizer proof-of-concept.
+This directory contains the AWS SAM application for the OPA-based Lambda authorizer and comprehensive testing suite.
+
+## 📚 Navigation
+
+- **[← Main README](../README.md)** - Project overview and quick start
+- **[Policy Documentation](../policies/README.md)** - DNC and authorization policies
+- **[Mock Services](../mock-services/README.md)** - Expert preferences API
+- **[PAP Dashboard](../pap-service/README.md)** - Policy administration interface
 
 ## Overview
 
-The SAM application demonstrates how to integrate Open Policy Agent (OPA) with AWS API Gateway custom authorizers. It includes:
+The SAM application demonstrates how to integrate Open Policy Agent (OPA) with AWS API Gateway custom authorizers and provides comprehensive testing capabilities:
 
 - **Lambda Authorizer Function** - Custom authorizer that calls OPA for policy decisions
+- **Backend Lambda Function** - Processes authorized requests and logs detailed information
+- **OPA Proxy Function** - Direct proxy to OPA for policy testing
 - **JWT Token Validation** - Decodes and validates JWT tokens
 - **Policy Integration** - Calls OPA server for authorization decisions
 - **Comprehensive Testing** - Playwright-based end-to-end tests
 
 ## Architecture
 
-```
+```text
 API Gateway → Lambda Authorizer → OPA Server → Policy Decision
      ↓              ↓                ↓              ↓
   Request      JWT Decode      Policy Query    Allow/Deny
+     ↓
+Backend Lambda (if authorized)
 ```
 
 ## Quick Start
@@ -70,6 +81,22 @@ The main authorizer function that:
 3. **Builds OPA input** from request context
 4. **Calls OPA server** for policy decision
 5. **Returns IAM policy** (Allow/Deny) to API Gateway
+
+### Backend Lambda (`opa-poc/backend.mjs`)
+
+Processes authorized requests and provides detailed logging:
+
+1. **Logs comprehensive request information** including user context
+2. **Demonstrates post-authorization processing** for audit trails
+3. **Returns structured response** with request details
+
+### OPA Proxy Lambda (`opa-poc/opaProxy.mjs`)
+
+Direct proxy to OPA for policy testing:
+
+1. **Forwards requests directly to OPA** for policy evaluation
+2. **Handles CORS** for browser-based testing
+3. **Provides multiple policy endpoints** (DNC, authorization)
 
 ### Policy Builder (`opa-poc/policyBuilder.js`)
 
@@ -129,14 +156,14 @@ curl -X GET http://localhost:3000/user/alice \
 
 ### Environment Variables
 
-- `OPA_URL` - OPA server endpoint (default: http://localhost:8181)
+- `OPA_URL` - OPA server endpoint (default: `http://localhost:8181`)
 - `NODE_ENV` - Environment (development/production)
 
 ### OPA Integration
 
 The authorizer calls OPA's authorization policy at:
 
-```
+```text
 POST http://localhost:8181/v1/data/policies/authz/allow
 ```
 
