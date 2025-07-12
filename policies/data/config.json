@@ -1,0 +1,28 @@
+{
+  "config": {
+    "preferences_service_url": "http://preferences-service:3002",
+    "preferences_service_token": "mock-token",
+    "preferences_service_timeout": "5s",
+    "project_types": [
+      "financial_services",
+      "healthcare",
+      "technology",
+      "manufacturing",
+      "energy",
+      "telecommunications",
+      "automotive",
+      "aerospace",
+      "pharmaceuticals",
+      "consulting"
+    ],
+    "dnc_categories": {
+      "client_restriction": "Client confidentiality agreement",
+      "competitor": "Direct competitor - conflict of interest",
+      "security_restriction": "Government security clearance required",
+      "legal_restriction": "Ongoing litigation",
+      "sanctions": "Economic sanctions",
+      "embargo": "Trade embargo",
+      "export_control": "Export control restrictions"
+    }
+  }
+}

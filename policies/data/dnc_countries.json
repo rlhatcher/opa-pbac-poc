@@ -1,0 +1,46 @@
+{
+  "countries": {
+    "CN": {
+      "id": "CN",
+      "name": "China",
+      "reason": "Export control restrictions",
+      "added_date": "2024-01-01",
+      "category": "export_control"
+    },
+    "IR": {
+      "id": "IR",
+      "name": "Iran", 
+      "reason": "Economic sanctions",
+      "added_date": "2024-01-01",
+      "category": "sanctions"
+    },
+    "KP": {
+      "id": "KP",
+      "name": "North Korea",
+      "reason": "Economic sanctions",
+      "added_date": "2024-01-01", 
+      "category": "sanctions"
+    },
+    "RU": {
+      "id": "RU",
+      "name": "Russia",
+      "reason": "Economic sanctions",
+      "added_date": "2024-02-24",
+      "category": "sanctions"
+    },
+    "SY": {
+      "id": "SY", 
+      "name": "Syria",
+      "reason": "Economic sanctions",
+      "added_date": "2024-01-01",
+      "category": "sanctions"
+    },
+    "CU": {
+      "id": "CU",
+      "name": "Cuba", 
+      "reason": "Trade embargo",
+      "added_date": "2024-01-01",
+      "category": "embargo"
+    }
+  }
+}

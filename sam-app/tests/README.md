@@ -4,10 +4,16 @@ This directory contains Playwright-based end-to-end tests for the OPA Lambda Aut
 
 ## Test Structure
 
-- **`e2e/opa-authorizer.spec.js`** - Main test suite covering:
+- **`e2e/dnc-policy.spec.js`** - DNC policy test suite covering:
+
   - Direct OPA policy testing
+  - DNC policy scenarios (company, country, preferences blocking)
+  - Input validation and error handling
+
+- **`e2e/opa-authorizer.spec.js`** - Lambda authorizer test suite covering:
+  - Direct OPA authorization policy testing
   - Lambda authorizer integration testing
-  - Various authorization scenarios (user access, admin access, denied access)
+  - JWT-based access control scenarios
 
 ## Quick Start
 
@@ -43,7 +49,7 @@ npm run test:e2e
 npm run test:e2e:ui
 
 # Run specific test file
-npx playwright test opa-authorizer.spec.js
+npx playwright test dnc-policy.spec.js
 ```
 
 ## Test Scenarios

@@ -1,0 +1,349 @@
+openapi: 3.0.3
+info:
+  title: Expert Preferences Service
+  description: |
+    Service for managing expert preferences regarding project types they do not wish to be contacted about.
+
+    This service allows experts to set preferences for project types they want to exclude from consideration.
+    The DNC (Do Not Contact) policy uses this service to determine if an expert should be contacted for a specific project type.
+  version: 1.0.0
+  contact:
+    name: Expert Platform Team
+    email: platform@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3002
+    description: Local development server
+  - url: http://preferences-service.local
+    description: Local Docker service
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the preferences service
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: 'healthy'
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2024-07-11T22:30:00Z'
+                  version:
+                    type: string
+                    example: '1.0.0'
+
+  /preferences/{expertId}:
+    get:
+      summary: Get expert preferences
+      description: |
+        Retrieve the project type exclusions for a specific expert.
+        Returns the list of project types the expert does not want to be contacted about.
+      operationId: getExpertPreferences
+      parameters:
+        - name: expertId
+          in: path
+          required: true
+          description: Unique identifier for the expert
+          schema:
+            type: string
+            pattern: '^expert_[a-zA-Z0-9]+$'
+            example: 'expert_123'
+        - name: includeHistory
+          in: query
+          required: false
+          description: Include historical preference changes
+          schema:
+            type: boolean
+            default: false
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Expert preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertPreferences'
+              examples:
+                expert_999:
+                  summary: Expert with pharmaceutical exclusions
+                  value:
+                    expert_id: 'expert_999'
+                    exclusions: ['pharmaceuticals', 'healthcare']
+                    last_updated: '2024-06-15T10:30:00Z'
+                    preferences_version: 2
+                    contact_allowed: true
+                    notes: 'Temporarily unavailable for pharmaceutical projects'
+                expert_123:
+                  summary: Expert with no exclusions
+                  value:
+                    expert_id: 'expert_123'
+                    exclusions: []
+                    last_updated: '2024-07-10T14:20:00Z'
+                    preferences_version: 1
+                    contact_allowed: true
+                    notes: 'Open to all project types'
+                expert_456:
+                  summary: Expert with technology exclusions
+                  value:
+                    expert_id: 'expert_456'
+                    exclusions: ['technology', 'software']
+                    last_updated: '2024-05-20T16:45:00Z'
+                    preferences_version: 1
+                    contact_allowed: true
+                    notes: 'Focusing on non-tech projects this quarter'
+                expert_555:
+                  summary: Expert who blocks all contact
+                  value:
+                    expert_id: 'expert_555'
+                    exclusions: ['*']
+                    last_updated: '2024-07-01T09:15:00Z'
+                    preferences_version: 3
+                    contact_allowed: false
+                    notes: 'On sabbatical - no contact until further notice'
+        '404':
+          description: Expert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'EXPERT_NOT_FOUND'
+                message: "Expert with ID 'expert_999' not found"
+                timestamp: '2024-07-11T22:30:00Z'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update expert preferences
+      description: Update the project type exclusions for a specific expert
+      operationId: updateExpertPreferences
+      parameters:
+        - name: expertId
+          in: path
+          required: true
+          description: Unique identifier for the expert
+          schema:
+            type: string
+            pattern: '^expert_[a-zA-Z0-9]+$'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferencesRequest'
+            examples:
+              add_exclusions:
+                summary: Add project type exclusions
+                value:
+                  exclusions: ['pharmaceuticals', 'healthcare', 'biotechnology']
+                  contact_allowed: true
+              block_all_contact:
+                summary: Block all contact
+                value:
+                  exclusions: ['*']
+                  contact_allowed: false
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertPreferences'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Expert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /project-types:
+    get:
+      summary: Get available project types
+      description: Retrieve the list of all available project types that can be excluded
+      operationId: getProjectTypes
+      responses:
+        '200':
+          description: Project types retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project_types:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectType'
+              example:
+                project_types:
+                  - id: 'financial_services'
+                    name: 'Financial Services'
+                    description: 'Banking, insurance, and financial consulting projects'
+                  - id: 'healthcare'
+                    name: 'Healthcare'
+                    description: 'Medical, pharmaceutical, and healthcare technology projects'
+                  - id: 'technology'
+                    name: 'Technology'
+                    description: 'Software development, IT consulting, and tech innovation projects'
+
+components:
+  schemas:
+    ExpertPreferences:
+      type: object
+      required:
+        - expert_id
+        - exclusions
+        - last_updated
+        - contact_allowed
+      properties:
+        expert_id:
+          type: string
+          description: Unique identifier for the expert
+          pattern: '^expert_[a-zA-Z0-9]+$'
+          example: 'expert_123'
+        exclusions:
+          type: array
+          description: |
+            List of project types the expert does not want to be contacted about.
+            Use "*" to indicate no contact for any project type.
+          items:
+            type: string
+          example: ['pharmaceuticals', 'healthcare']
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when preferences were last updated
+          example: '2024-06-15T10:30:00Z'
+        preferences_version:
+          type: integer
+          description: Version number of the preferences (incremented on each update)
+          minimum: 1
+          example: 2
+        contact_allowed:
+          type: boolean
+          description: Whether the expert allows any contact at all
+          example: true
+        notes:
+          type: string
+          description: Optional notes about the preferences
+          maxLength: 500
+          example: 'Temporarily unavailable for pharmaceutical projects due to current engagement'
+
+    UpdatePreferencesRequest:
+      type: object
+      required:
+        - exclusions
+        - contact_allowed
+      properties:
+        exclusions:
+          type: array
+          description: List of project types to exclude
+          items:
+            type: string
+          example: ['pharmaceuticals', 'healthcare']
+        contact_allowed:
+          type: boolean
+          description: Whether to allow any contact
+          example: true
+        notes:
+          type: string
+          description: Optional notes about the preferences
+          maxLength: 500
+
+    ProjectType:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the project type
+          example: 'financial_services'
+        name:
+          type: string
+          description: Human-readable name of the project type
+          example: 'Financial Services'
+        description:
+          type: string
+          description: Description of what this project type includes
+          example: 'Banking, insurance, and financial consulting projects'
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: 'EXPERT_NOT_FOUND'
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Expert with ID 'expert_999' not found"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error occurred
+          example: '2024-07-11T22:30:00Z'
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token for authentication. Include in the Authorization header as:
+        `Authorization: Bearer <token>`
+
+tags:
+  - name: preferences
+    description: Expert preference management
+  - name: health
+    description: Service health and monitoring
+  - name: metadata
+    description: Service metadata and configuration
