@@ -67,10 +67,26 @@ export AWS_ACCESS_KEY_ID=dummy
 export AWS_SECRET_ACCESS_KEY=dummy
 export AWS_DEFAULT_REGION=us-east-1
 
-# Step 6: Clean up any existing SAM containers
-echo -e "${BLUE}🧹 Cleaning up existing SAM containers...${NC}"
+# Step 6: Clean up any existing SAM processes and containers
+echo -e "${BLUE}🧹 Cleaning up existing SAM processes and containers...${NC}"
+
+# Kill any existing SAM processes
+pkill -f "sam local start" 2>/dev/null || true
+
+# Clean up Lambda containers (including versioned tags)
 docker ps -q --filter "ancestor=public.ecr.aws/lambda/nodejs" | xargs -r docker stop 2>/dev/null || true
 docker ps -aq --filter "ancestor=public.ecr.aws/lambda/nodejs" | xargs -r docker rm 2>/dev/null || true
+
+# Also clean up containers with versioned nodejs images (more comprehensive)
+docker ps -q | xargs -r docker inspect --format '{{.Id}} {{.Config.Image}}' 2>/dev/null | grep "public.ecr.aws/lambda/nodejs" | cut -d' ' -f1 | xargs -r docker stop 2>/dev/null || true
+docker ps -aq | xargs -r docker inspect --format '{{.Id}} {{.Config.Image}}' 2>/dev/null | grep "public.ecr.aws/lambda/nodejs" | cut -d' ' -f1 | xargs -r docker rm 2>/dev/null || true
+
+# Alternative: Stop and remove all containers with lambda nodejs images
+docker stop $(docker ps -q --filter "ancestor=public.ecr.aws/lambda/nodejs:20-rapid-arm64") 2>/dev/null || true
+docker rm $(docker ps -aq --filter "ancestor=public.ecr.aws/lambda/nodejs:20-rapid-arm64") 2>/dev/null || true
+
+# Wait a moment for cleanup to complete
+sleep 2
 
 # Step 7: Start SAM local services
 echo -e "${BLUE}🚀 Starting SAM local API...${NC}"
@@ -132,15 +148,38 @@ echo -e "${BLUE}To stop all services:${NC}"
 echo "  kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true"
 echo "  docker-compose down"
 echo ""
+echo -e "${BLUE}To check running processes:${NC}"
+echo "  # Check SAM processes:"
+echo "  ps aux | grep 'sam local'"
+echo "  # Check Lambda containers:"
+echo "  docker ps --filter 'ancestor=public.ecr.aws/lambda/nodejs'"
+echo ""
 echo -e "${GREEN}🚀 Complete End-to-End POC Ready!${NC}"
 echo -e "${GREEN}✅ OPA Server + Policies${NC}"
 echo -e "${GREEN}✅ Mock Services + Documentation${NC}"
 echo -e "${GREEN}✅ Lambda Authorizer Integration${NC}"
 echo -e "${GREEN}✅ Comprehensive Test Suite${NC}"
 
+# Function to show current process status
+show_process_status() {
+    echo -e "${BLUE}📊 Current Process Status:${NC}"
+    echo "SAM Processes:"
+    ps aux | grep "sam local" | grep -v grep || echo "  No SAM processes found"
+    echo ""
+    echo "Lambda Containers:"
+    # Show containers with exact filter
+    docker ps --filter "ancestor=public.ecr.aws/lambda/nodejs" --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
+    # Also show any containers with versioned nodejs images
+    docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}" | grep "public.ecr.aws/lambda/nodejs" 2>/dev/null || echo "  No Lambda containers found"
+    echo ""
+}
+
 cleanup() {
     echo
     echo "🛑 Stopping services..."
+
+    # Show status before cleanup
+    show_process_status
 
     # Kill SAM processes
     if [ -n "$SAM_API_PID" ]; then
@@ -162,6 +201,19 @@ cleanup() {
     # Fallback: kill any remaining sam local processes
     pkill -f "sam local start" 2>/dev/null || true
 
+    # Clean up Lambda containers created by SAM
+    echo "🧹 Cleaning up Lambda containers..."
+    docker ps -q --filter "ancestor=public.ecr.aws/lambda/nodejs" | xargs -r docker stop 2>/dev/null || true
+    docker ps -aq --filter "ancestor=public.ecr.aws/lambda/nodejs" | xargs -r docker rm 2>/dev/null || true
+
+    # Also clean up containers with versioned nodejs images (more comprehensive)
+    docker ps -q | xargs -r docker inspect --format '{{.Id}} {{.Config.Image}}' 2>/dev/null | grep "public.ecr.aws/lambda/nodejs" | cut -d' ' -f1 | xargs -r docker stop 2>/dev/null || true
+    docker ps -aq | xargs -r docker inspect --format '{{.Id}} {{.Config.Image}}' 2>/dev/null | grep "public.ecr.aws/lambda/nodejs" | cut -d' ' -f1 | xargs -r docker rm 2>/dev/null || true
+
+    # Alternative: Stop and remove all containers with lambda nodejs images
+    docker stop $(docker ps -q --filter "ancestor=public.ecr.aws/lambda/nodejs:20-rapid-arm64") 2>/dev/null || true
+    docker rm $(docker ps -aq --filter "ancestor=public.ecr.aws/lambda/nodejs:20-rapid-arm64") 2>/dev/null || true
+
     # Stop Docker services (go back to root directory first)
     cd ..
     if docker-compose down; then
@@ -169,6 +221,11 @@ cleanup() {
     else
         echo "⚠️  Failed to stop Docker services"
     fi
+
+    # Show final status after cleanup
+    echo ""
+    echo "🔍 Final Status Check:"
+    show_process_status
 
     echo "🏁 Cleanup complete"
     exit

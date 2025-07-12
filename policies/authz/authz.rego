@@ -7,7 +7,8 @@ default allow := false
 
 # Allow access if user is accessing their own data
 allow if {
-	input.method == "GET"
+	input.method in ["GET", "PUT", "PATCH"]
+	count(input.path) >= 2
 	input.path[0] == "user"
 	input.path[1] == input.token.payload.sub
 }
