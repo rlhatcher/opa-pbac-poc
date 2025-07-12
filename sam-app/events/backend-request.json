@@ -1,24 +1,27 @@
 {
-  "body": "{\"message\": \"hello world\", \"userId\": \"alice\"}",
+  "body": "{\"action\": \"getUserData\", \"userId\": \"alice\"}",
   "resource": "/user/{userId}",
   "path": "/user/alice",
   "httpMethod": "GET",
   "isBase64Encoded": false,
   "queryStringParameters": {
-    "includeDetails": "true"
+    "includeDetails": "true",
+    "format": "json"
   },
   "pathParameters": {
     "userId": "alice"
   },
   "stageVariables": {
-    "environment": "dev"
+    "environment": "dev",
+    "logLevel": "info"
   },
   "headers": {
     "Accept": "application/json",
     "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "en-US,en;q=0.9",
-    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXSwiaWF0IjoxNzIxNjAyMjAwLCJleHAiOjE3MjE2MDU4MDB9.example",
+    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXSwiaWF0IjoxNzIxNjAyMjAwLCJleHAiOjE3MjE2MDU4MDB9.example-signature",
     "Cache-Control": "no-cache",
+    "Content-Type": "application/json",
     "CloudFront-Forwarded-Proto": "https",
     "CloudFront-Is-Desktop-Viewer": "true",
     "CloudFront-Is-Mobile-Viewer": "false",
@@ -26,16 +29,17 @@
     "CloudFront-Is-Tablet-Viewer": "false",
     "CloudFront-Viewer-Country": "US",
     "Host": "api.example.com",
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
     "X-Amz-Cf-Id": "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==",
     "X-Forwarded-For": "203.0.113.12, 127.0.0.1",
     "X-Forwarded-Port": "443",
-    "X-Forwarded-Proto": "https"
+    "X-Forwarded-Proto": "https",
+    "X-Request-ID": "550e8400-e29b-41d4-a716-446655440000"
   },
   "requestContext": {
     "accountId": "123456789012",
-    "resourceId": "abc123",
+    "resourceId": "abc123def",
     "stage": "dev",
     "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
     "requestTime": "11/Jul/2025:22:30:00 +0000",
@@ -50,7 +54,7 @@
       "cognitoAuthenticationType": null,
       "cognitoAuthenticationProvider": null,
       "userArn": null,
-      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
       "user": null
     },
     "path": "/dev/user/alice",
@@ -62,7 +66,10 @@
       "principalId": "alice",
       "claims": {
         "sub": "alice",
-        "roles": ["user"]
+        "roles": ["user"],
+        "iat": 1721602200,
+        "exp": 1721605800,
+        "iss": "opa-pbac-poc"
       }
     }
   }

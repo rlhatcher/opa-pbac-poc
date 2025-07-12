@@ -4,46 +4,47 @@ This directory contains Playwright-based end-to-end tests for the OPA Lambda Aut
 
 ## Test Structure
 
-- **`e2e/opa-authorizer.spec.js`** - Main test suite covering:
+- **`e2e/dnc-policy.spec.js`** - DNC policy test suite covering:
+
   - Direct OPA policy testing
+  - DNC policy scenarios (company, country, preferences blocking)
+  - Input validation and error handling
+
+- **`e2e/opa-authorizer.spec.js`** - Lambda authorizer test suite covering:
+  - Direct OPA authorization policy testing
   - Lambda authorizer integration testing
-  - Various authorization scenarios (user access, admin access, denied access)
+  - JWT-based access control scenarios
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Integrated POC Testing
 
 ```bash
-cd opa-poc
-npm install
-npm run test:setup  # Install Playwright browsers
+# From project root - this runs everything including tests
+./setup.sh
 ```
 
-### 2. Start Test Environment
+The setup script automatically:
+
+- Starts all services (OPA, Preferences, SAM Local)
+- Installs dependencies and Playwright browsers
+- Runs comprehensive test suite
+- Shows results and available services
+
+### Manual Test Runs (after setup.sh)
 
 ```bash
 # From sam-app directory
-./scripts/test-setup.sh
-```
+cd sam-app
 
-This script will:
+# Run all tests again
+npx playwright test
 
-- Start OPA server via Docker Compose
-- Build and start SAM local API
-- Wait for both services to be ready
-- Install Playwright if needed
-
-### 3. Run Tests
-
-```bash
-# Run all E2E tests
-npm run test:e2e
-
-# Run tests with interactive UI
-npm run test:e2e:ui
+# Run with interactive UI
+npx playwright test --ui
 
 # Run specific test file
-npx playwright test opa-authorizer.spec.js
+npx playwright test dnc-policy.spec.js
 ```
 
 ## Test Scenarios
@@ -81,7 +82,7 @@ You can also test manually using the generated tokens:
 
 ```bash
 # Test OPA directly
-curl -X POST http://localhost:8181/v1/data/policies/allow \
+curl -X POST http://localhost:8181/v1/data/policies/authz/allow \
   -H "Content-Type: application/json" \
   -d '{"input": {"method": "GET", "path": ["user", "alice"], "token": {"payload": {"sub": "alice", "roles": ["user"]}}, "user_id": "alice"}}'
 
@@ -93,7 +94,8 @@ curl -X POST http://localhost:3000/2015-03-31/functions/function/invocations \
 
 ## Troubleshooting
 
-- **OPA not responding**: Check `docker-compose logs opa`
-- **SAM local issues**: Check `sam logs` or restart with `sam local start-api`
+- **Setup script fails**: Check prerequisites and run `./setup.sh` again
+- **Services not responding**: Restart with `./setup.sh` from project root
 - **Test failures**: Run with `--headed` flag to see browser interactions
-- **Port conflicts**: Ensure ports 3000 (SAM) and 8181 (OPA) are available
+- **Port conflicts**: Ensure ports 3000, 3001, 8181, 3002, 3003 are available
+- **Playwright issues**: Run `npx playwright install` to reinstall browsers

@@ -4,7 +4,7 @@ import { buildPolicy } from './policyBuilder.js'
 
 const OPA_ENDPOINT =
   process.env.OPA_ENDPOINT || 'http://host.docker.internal:8181'
-const OPA_URL = `${OPA_ENDPOINT}/v1/data/policies/allow`
+const OPA_URL = `${OPA_ENDPOINT}/v1/data/policies/authz/allow`
 
 export const lambdaHandler = async (event) => {
   const token = event.headers?.authorization?.replace('Bearer ', '')

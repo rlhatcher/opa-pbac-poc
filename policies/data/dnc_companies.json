@@ -1,0 +1,39 @@
+{
+  "companies": {
+    "comp_001": {
+      "id": "comp_001",
+      "name": "Confidential Corp",
+      "reason": "Client confidentiality agreement",
+      "added_date": "2024-01-15",
+      "category": "client_restriction"
+    },
+    "comp_002": {
+      "id": "comp_002", 
+      "name": "Competitor Industries Inc",
+      "reason": "Direct competitor - conflict of interest",
+      "added_date": "2024-02-20",
+      "category": "competitor"
+    },
+    "comp_003": {
+      "id": "comp_003",
+      "name": "Sensitive Tech Solutions",
+      "reason": "Government security clearance required",
+      "added_date": "2024-03-10",
+      "category": "security_restriction"
+    },
+    "comp_004": {
+      "id": "comp_004",
+      "name": "Legal Issues LLC",
+      "reason": "Ongoing litigation",
+      "added_date": "2024-04-05",
+      "category": "legal_restriction"
+    },
+    "comp_005": {
+      "id": "comp_005",
+      "name": "Embargo Industries",
+      "reason": "Trade sanctions",
+      "added_date": "2024-05-12",
+      "category": "sanctions"
+    }
+  }
+}

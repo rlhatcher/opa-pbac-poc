@@ -7,14 +7,14 @@ Globals:
   Function:
     Runtime: nodejs20.x
     Architectures:
-      - arm64  # Better price/performance than x86_64
+      - arm64 # Better price/performance than x86_64
     MemorySize: 256
     Timeout: 30
     Environment:
       Variables:
         NODE_ENV: production
         LOG_LEVEL: info
-    Tracing: Active  # Enable X-Ray tracing
+    Tracing: Active # Enable X-Ray tracing
     Tags:
       Project: OPA-PBAC
       Environment: !Ref Environment
@@ -35,12 +35,31 @@ Parameters:
     Description: OPA server endpoint URL
 
 Resources:
+  # API Gateway with Lambda Authorizer
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Auth:
+        DefaultAuthorizer: LambdaAuthorizer
+        Authorizers:
+          LambdaAuthorizer:
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+            Identity:
+              Headers:
+                - Authorization
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  # Lambda Authorizer Function
   AuthorizerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: opa-poc
       Handler: app.lambdaHandler
-      FunctionName: !Sub "${AWS::StackName}-opa-authorizer"
+      FunctionName: !Sub '${AWS::StackName}-opa-authorizer'
       Description: Lambda authorizer using Open Policy Agent for PBAC
       Environment:
         Variables:
@@ -49,32 +68,88 @@ Resources:
         Type: SQS
         TargetArn: !GetAtt AuthorizerDLQ.Arn
 
+  # Backend Lambda Function (called when authorization succeeds)
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: opa-poc
+      Handler: backend.lambdaHandler
+      FunctionName: !Sub '${AWS::StackName}-backend'
+      Description: Backend function that processes authorized requests
+      Environment:
+        Variables:
+          NODE_ENV: !Ref Environment
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: ANY
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt BackendDLQ.Arn
+
   # Dead Letter Queue for failed authorizations
   AuthorizerDLQ:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${AWS::StackName}-authorizer-dlq"
-      MessageRetentionPeriod: 1209600  # 14 days
+      QueueName: !Sub '${AWS::StackName}-authorizer-dlq'
+      MessageRetentionPeriod: 1209600 # 14 days
       Tags:
         - Key: Project
           Value: OPA-PBAC
 
-  # CloudWatch Log Group with retention
+  # Dead Letter Queue for backend function
+  BackendDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${AWS::StackName}-backend-dlq'
+      MessageRetentionPeriod: 1209600 # 14 days
+      Tags:
+        - Key: Project
+          Value: OPA-PBAC
+
+  # CloudWatch Log Groups with retention
   AuthorizerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${AuthorizerFunction}"
+      LogGroupName: !Sub '/aws/lambda/${AuthorizerFunction}'
+      RetentionInDays: 30
+
+  BackendLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${BackendFunction}'
       RetentionInDays: 30
 
 Outputs:
+  ApiGatewayUrl:
+    Description: URL of the API Gateway
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiGatewayUrl'
+
   AuthorizerFunctionArn:
     Description: ARN of the Lambda Authorizer Function
     Value: !GetAtt AuthorizerFunction.Arn
     Export:
-      Name: !Sub "${AWS::StackName}-AuthorizerFunctionArn"
+      Name: !Sub '${AWS::StackName}-AuthorizerFunctionArn'
 
   AuthorizerFunctionName:
     Description: Name of the Lambda Authorizer Function
     Value: !Ref AuthorizerFunction
     Export:
-      Name: !Sub "${AWS::StackName}-AuthorizerFunctionName"
+      Name: !Sub '${AWS::StackName}-AuthorizerFunctionName'
+
+  BackendFunctionArn:
+    Description: ARN of the Backend Lambda Function
+    Value: !GetAtt BackendFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BackendFunctionArn'
+
+  BackendFunctionName:
+    Description: Name of the Backend Lambda Function
+    Value: !Ref BackendFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-BackendFunctionName'

@@ -1,0 +1,34 @@
+{
+  "name": "expert-preferences-service",
+  "version": "1.0.0",
+  "description": "Mock service for expert project type preferences",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:prism": "prism mock preferences-api.yaml --host 0.0.0.0 --port 3002",
+    "start:prism-dynamic": "prism mock preferences-api.yaml --host 0.0.0.0 --port 3002 --dynamic",
+    "validate": "swagger-codegen validate -i preferences-api.yaml"
+  },
+  "keywords": [
+    "mock",
+    "api",
+    "preferences",
+    "expert",
+    "dnc",
+    "openapi"
+  ],
+  "author": "Expert Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "@stoplight/prism-cli": "^5.8.0",
+    "swagger-ui-express": "^5.0.0",
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "companies": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "industry": { "type": "string" },
+            "dnc_reason": { "type": "string" }
+          },
+          "required": ["id", "name", "industry", "dnc_reason"]
+        }
+      }
+    },
+    "countries": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Z]{2}$": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "dnc_reason": { "type": "string" }
+          },
+          "required": ["id", "name", "dnc_reason"]
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "properties": {
+            "preferences_service_url": { "type": "string" },
+            "preferences_service_token": { "type": "string" },
+            "preferences_service_timeout": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "required": ["companies", "countries", "config"]
+}

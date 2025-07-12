@@ -41,7 +41,7 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
@@ -55,12 +55,12 @@ test.describe('OPA Policy Engine Tests', () => {
   }) => {
     const input = {
       method: 'GET',
-      path: ['user', 'alice'],
-      token: { payload: { sub: 'bob', roles: ['user'] } },
-      user_id: 'bob'
+      path: ['user', 'bob'],
+      token: { payload: { sub: 'alice', roles: ['user'] } },
+      user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
@@ -69,7 +69,9 @@ test.describe('OPA Policy Engine Tests', () => {
     expect(result.result).toBe(false)
   })
 
-  test('should allow access for admin user', async ({ request }) => {
+  test('should allow access for admin user to any data', async ({
+    request
+  }) => {
     const input = {
       method: 'GET',
       path: ['user', 'alice'],
@@ -77,7 +79,7 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'admin'
     }
 
-    const response = await request.post('/v1/data/policies/allow', {
+    const response = await request.post('/v1/data/policies/authz/allow', {
       data: { input }
     })
 
@@ -85,23 +87,37 @@ test.describe('OPA Policy Engine Tests', () => {
     const result = await response.json()
     expect(result.result).toBe(true)
   })
+
+  test('should deny access for non-GET methods', async ({ request }) => {
+    const input = {
+      method: 'POST',
+      path: ['user', 'alice'],
+      token: { payload: { sub: 'alice', roles: ['user'] } },
+      user_id: 'alice'
+    }
+
+    const response = await request.post('/v1/data/policies/authz/allow', {
+      data: { input }
+    })
+
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(false)
+  })
 })
 
-test.describe('Lambda Authorizer Tests', () => {
+test.describe('Lambda Authorizer Integration Tests', () => {
   test.use({ baseURL: 'http://localhost:3001' })
 
   test('should return Allow policy for valid user accessing own data', async ({
     request
   }) => {
     const authEvent = {
-      type: 'REQUEST',
-      methodArn:
-        'arn:aws:execute-api:us-east-1:123456789012:abcdef123/test/GET/user/alice',
-      headers: {
-        authorization: `Bearer ${testTokens.validUser}`
-      },
+      headers: { authorization: `Bearer ${testTokens.validUser}` },
       httpMethod: 'GET',
-      path: '/user/alice'
+      path: '/user/alice',
+      methodArn:
+        'arn:aws:execute-api:us-east-1:123456789012:abcdef123/test/GET/user/alice'
     }
 
     const response = await request.post(
@@ -114,23 +130,21 @@ test.describe('Lambda Authorizer Tests', () => {
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
 
-    expect(result).toHaveProperty('principalId', 'alice')
-    expect(result).toHaveProperty('policyDocument')
+    expect(result.principalId).toBe('alice')
+    expect(result.policyDocument.Version).toBe('2012-10-17')
     expect(result.policyDocument.Statement[0].Effect).toBe('Allow')
+    expect(result.policyDocument.Statement[0].Action).toBe('execute-api:Invoke')
   })
 
   test('should return Deny policy for user accessing other user data', async ({
     request
   }) => {
     const authEvent = {
-      type: 'REQUEST',
-      methodArn:
-        'arn:aws:execute-api:us-east-1:123456789012:abcdef123/test/GET/user/alice',
-      headers: {
-        authorization: `Bearer ${testTokens.otherUser}`
-      },
+      headers: { authorization: `Bearer ${testTokens.validUser}` },
       httpMethod: 'GET',
-      path: '/user/alice'
+      path: '/user/bob',
+      methodArn:
+        'arn:aws:execute-api:us-east-1:123456789012:abcdef123/test/GET/user/bob'
     }
 
     const response = await request.post(
@@ -143,21 +157,19 @@ test.describe('Lambda Authorizer Tests', () => {
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
 
-    expect(result).toHaveProperty('principalId', 'bob')
-    expect(result).toHaveProperty('policyDocument')
+    expect(result.principalId).toBe('alice')
     expect(result.policyDocument.Statement[0].Effect).toBe('Deny')
   })
 
-  test('should return Allow policy for admin user', async ({ request }) => {
+  test('should return Allow policy for admin accessing any data', async ({
+    request
+  }) => {
     const authEvent = {
-      type: 'REQUEST',
-      methodArn:
-        'arn:aws:execute-api:us-east-1:123456789012:abcdef123/test/GET/user/alice',
-      headers: {
-        authorization: `Bearer ${testTokens.adminUser}`
-      },
+      headers: { authorization: `Bearer ${testTokens.adminUser}` },
       httpMethod: 'GET',
-      path: '/user/alice'
+      path: '/user/alice',
+      methodArn:
+        'arn:aws:execute-api:us-east-1:123456789012:abcdef123/test/GET/user/alice'
     }
 
     const response = await request.post(
@@ -170,8 +182,7 @@ test.describe('Lambda Authorizer Tests', () => {
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
 
-    expect(result).toHaveProperty('principalId', 'admin')
-    expect(result).toHaveProperty('policyDocument')
+    expect(result.principalId).toBe('admin')
     expect(result.policyDocument.Statement[0].Effect).toBe('Allow')
   })
 })

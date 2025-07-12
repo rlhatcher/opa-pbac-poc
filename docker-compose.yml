@@ -1,14 +1,74 @@
 services:
   opa:
-    image: openpolicyagent/opa:latest
+    build:
+      context: .
+      dockerfile: opa/Dockerfile
     platform: linux/amd64
     ports:
       - '8181:8181'
+    depends_on:
+      - preferences-service
+
+  preferences-service:
+    build:
+      context: ./mock-services
+      dockerfile: Dockerfile
+    ports:
+      - '3002:3002'
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
     volumes:
-      - ./policies:/policies
-    command:
-      - 'run'
-      - '--server'
-      - '--addr=0.0.0.0:8181'
-      - '--set=decision_logs.console=true'
-      - '/policies'
+      - ./mock-services:/app
+      - /app/node_modules
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3002/project-types'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    ports:
+      - '3003:8080'
+    environment:
+      - SWAGGER_JSON=/app/preferences-api.yaml
+      - BASE_URL=/
+      - DEEP_LINKING=true
+      - DISPLAY_OPERATION_ID=false
+      - DEFAULT_MODELS_EXPAND_DEPTH=1
+      - DEFAULT_MODEL_EXPAND_DEPTH=1
+      - DEFAULT_MODEL_RENDERING=example
+      - DISPLAY_REQUEST_DURATION=true
+      - DOC_EXPANSION=list
+      - FILTER=true
+      - MAX_DISPLAYED_TAGS=10
+      - SHOW_EXTENSIONS=true
+      - SHOW_COMMON_EXTENSIONS=true
+      - TRY_IT_OUT_ENABLED=true
+      - URLS=[{"url":"http://localhost:3002/api-spec","name":"Live API"}]
+    volumes:
+      - ./mock-services/preferences-api.yaml:/app/preferences-api.yaml:ro
+    depends_on:
+      - preferences-service
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://localhost:8080/'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
