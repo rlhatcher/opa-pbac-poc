@@ -84,29 +84,41 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
       const opaResult = await response.json()
 
-      // Extract the comprehensive policy result
+      // Extract comprehensive policy result from full DNC package
       const policyResult = opaResult.result || opaResult
       const canContact = policyResult.can_contact
       const dncReasons = policyResult.dnc_reasons || []
+      const decisionId = opaResult.decision_id
 
-      // Format the result with comprehensive information
+      // Format the result - include details only for DENY decisions
       const result = {
         timestamp: new Date().toISOString(),
         request: { expert, project },
-        response: {
-          decision_id: opaResult.decision_id,
-          result: canContact,
-          reasons: dncReasons,
-          ...(policyResult.blocked_company && {
-            blocked_company: policyResult.blocked_company
-          }),
-          ...(policyResult.blocked_country && {
-            blocked_country: policyResult.blocked_country
-          }),
-          ...(policyResult.input_validation_errors && {
-            validation_errors: policyResult.input_validation_errors
-          })
-        },
+        response: canContact
+          ? {
+              // ALLOW: Simple response
+              decision_id: decisionId,
+              result: canContact,
+              message: 'Contact allowed - no DNC restrictions found'
+            }
+          : {
+              // DENY: Comprehensive details with reasons
+              decision_id: decisionId,
+              result: canContact,
+              reasons: dncReasons,
+              ...(policyResult.blocked_company && {
+                blocked_company: policyResult.blocked_company
+              }),
+              ...(policyResult.blocked_country && {
+                blocked_country: policyResult.blocked_country
+              }),
+              ...(policyResult.input_validation_errors && {
+                validation_errors: policyResult.input_validation_errors
+              }),
+              ...(policyResult.located_in_dnc_country !== undefined && {
+                located_in_dnc_country: policyResult.located_in_dnc_country
+              })
+            },
         type: 'dnc-policy',
         decision: canContact ? 'ALLOW' : 'DENY'
       }

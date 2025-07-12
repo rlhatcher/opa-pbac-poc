@@ -5,6 +5,7 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import axios from 'axios'
+import { spawn } from 'child_process'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -238,6 +239,16 @@ app.post('/api/pep/opa-proxy/*', async (req, res) => {
       type: `opa-proxy-${opaPath.replace('/', '-')}`
     }
 
+    // Capture PDP decision log for policy evaluations
+    if (opaResponse.data && opaResponse.data.result !== undefined) {
+      captureOpaDecisionLog(
+        `policies.${opaPath}`,
+        req.body.input,
+        opaResponse.data.result,
+        opaResponse.data.decision_id
+      )
+    }
+
     // Store and broadcast
     dashboardData.pepRequests.unshift(result)
     if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
@@ -272,24 +283,162 @@ io.on('connection', (socket) => {
   })
 })
 
+// Function to capture OPA decision logs
+function captureOpaDecisionLog(policyPath, input, result, decisionId) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    decision_id: decisionId,
+    policy: policyPath,
+    input: input,
+    result: result,
+    decision: result ? 'ALLOW' : 'DENY',
+    level: 'info'
+  }
+
+  // Add to PDP logs
+  dashboardData.pdpLogs.unshift(logEntry)
+  if (dashboardData.pdpLogs.length > 100) dashboardData.pdpLogs.pop()
+
+  // Broadcast to connected clients
+  io.emit('pdp-log', logEntry)
+
+  console.log('📊 PDP Decision Log:', JSON.stringify(logEntry, null, 2))
+}
+
+// Monitor OPA decision logs from Docker container
+function startOpaLogMonitoring() {
+  console.log('📊 Starting OPA decision log monitoring via Docker logs...')
+
+  try {
+    // Use docker logs to follow OPA container logs
+    const dockerLogs = spawn('docker', [
+      'logs',
+      '--follow',
+      '--tail',
+      '0', // Only new logs
+      'opa-pbac-poc-opa-1'
+    ])
+
+    dockerLogs.stdout.on('data', (data) => {
+      const lines = data.toString().split('\n')
+
+      lines.forEach((line) => {
+        if (line.trim()) {
+          try {
+            const logEntry = JSON.parse(line)
+
+            // Check if this is a decision log entry
+            if (
+              logEntry.type === 'openpolicyagent.org/decision_logs' &&
+              logEntry.decision_id
+            ) {
+              // Transform OPA decision log to our format
+              const pdpLog = {
+                timestamp: logEntry.timestamp || new Date().toISOString(),
+                decision_id: logEntry.decision_id,
+                policy: logEntry.path || 'unknown',
+                input: logEntry.input,
+                result: logEntry.result,
+                decision: logEntry.result ? 'ALLOW' : 'DENY',
+                level: 'info',
+                message: `Policy evaluation: ${logEntry.path || 'unknown'}`,
+                metrics: logEntry.metrics
+              }
+
+              // Add to PDP logs
+              dashboardData.pdpLogs.unshift(pdpLog)
+              if (dashboardData.pdpLogs.length > 100)
+                dashboardData.pdpLogs.pop()
+
+              // Broadcast to connected clients
+              io.emit('pdp-log', pdpLog)
+
+              console.log(
+                '📊 OPA Decision Log captured:',
+                JSON.stringify(pdpLog, null, 2)
+              )
+            }
+          } catch (error) {
+            // Not a JSON log entry, ignore
+          }
+        }
+      })
+    })
+
+    dockerLogs.stderr.on('data', (data) => {
+      // OPA logs come through stderr, process them the same way as stdout
+      const lines = data.toString().split('\n')
+
+      lines.forEach((line) => {
+        if (line.trim()) {
+          try {
+            const logEntry = JSON.parse(line)
+
+            // Check if this is a decision log entry
+            if (
+              logEntry.type === 'openpolicyagent.org/decision_logs' &&
+              logEntry.decision_id
+            ) {
+              // Transform OPA decision log to our format
+              const pdpLog = {
+                timestamp: logEntry.timestamp || new Date().toISOString(),
+                decision_id: logEntry.decision_id,
+                policy: logEntry.path || 'unknown',
+                input: logEntry.input,
+                result: logEntry.result,
+                decision: logEntry.result ? 'ALLOW' : 'DENY',
+                level: 'info',
+                message: `Policy evaluation: ${logEntry.path || 'unknown'}`,
+                metrics: logEntry.metrics
+              }
+
+              // Add to PDP logs
+              dashboardData.pdpLogs.unshift(pdpLog)
+              if (dashboardData.pdpLogs.length > 100)
+                dashboardData.pdpLogs.pop()
+
+              // Broadcast to connected clients
+              io.emit('pdp-log', pdpLog)
+
+              console.log(
+                '📊 OPA Decision Log captured:',
+                JSON.stringify(pdpLog, null, 2)
+              )
+            }
+          } catch (error) {
+            // Not a JSON log entry, ignore
+          }
+        }
+      })
+    })
+
+    dockerLogs.on('error', (error) => {
+      console.error('❌ Error monitoring Docker logs:', error)
+    })
+
+    dockerLogs.on('close', (code) => {
+      console.log(`📊 Docker logs process exited with code ${code}`)
+    })
+
+    console.log('✅ OPA Docker log monitoring started')
+  } catch (error) {
+    console.error('❌ Failed to start OPA log monitoring:', error)
+    console.log('📝 Will use manual decision logging instead')
+  }
+}
+
 // Simulate some initial data and periodic updates
 function simulateInitialData() {
-  // Add some sample PDP logs
-  dashboardData.pdpLogs.push({
-    timestamp: new Date().toISOString(),
-    decision: 'allow',
-    policy: 'policies.authz',
-    input: { method: 'GET', path: ['user', 'alice'] },
-    result: true
-  })
-
   // Add some sample app logs
   dashboardData.appLogs.push({
     timestamp: new Date().toISOString(),
     level: 'INFO',
-    message: 'Lambda authorizer started',
-    source: 'authorizer-function'
+    message: 'PAP Service started - monitoring OPA decisions',
+    source: 'pap-service'
   })
+
+  // Start monitoring OPA decision logs
+  startOpaLogMonitoring()
 }
 
 // Start server

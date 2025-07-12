@@ -26,6 +26,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "socket.io": "^4.7.4",
+    "tail": "^2.2.6",
     "ws": "^8.14.2"
   },
   "devDependencies": {

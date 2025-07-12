@@ -1,8 +1,4 @@
-import jwt from 'jsonwebtoken'
-import fetch from 'node-fetch'
-
-const OPA_ENDPOINT =
-  process.env.OPA_ENDPOINT || 'http://host.docker.internal:8181'
+// No imports needed - this is a simple logging function
 
 export const lambdaHandler = async (event, context) => {
   console.log('🚀 Backend Lambda invoked - Authorization was successful!')

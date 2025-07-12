@@ -123,24 +123,7 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /policies/dnc
             Method: POST
-        DncDecisionDetails:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /policies/dnc/decision_details
-            Method: POST
-        DncBlockedCompany:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /policies/dnc/blocked_company
-            Method: POST
-        DncBlockedCountry:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /policies/dnc/blocked_country
-            Method: POST
+
         # Authorization Policy routes
         AuthzAllow:
           Type: Api

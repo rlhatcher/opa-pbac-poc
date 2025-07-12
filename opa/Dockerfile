@@ -14,7 +14,11 @@ COPY policies/schemas/data.json /schemas.json
 # Expose the standard OPA port
 EXPOSE 8181
 
-# Start OPA with policies, build-time data, and schema
+# Create logs directory
+RUN mkdir -p /logs
+
+# Start OPA with policies, build-time data, schema, and file-based decision logging
 # The data.json file will be available as data.countries
 # The schemas.json file will be available as data.schemas
-CMD ["run", "--server", "--addr=0.0.0.0:8181", "--set=decision_logs.console=true", "/policies", "/data.json", "/schemas.json"]
+# Decision logs will be written to /logs/decisions.jsonl
+CMD ["run", "--server", "--addr=0.0.0.0:8181", "--set=decision_logs.console=true", "--set=decision_logs.service=file", "--set=services.file.url=file:///logs/decisions.jsonl", "/policies", "/data.json", "/schemas.json"]
