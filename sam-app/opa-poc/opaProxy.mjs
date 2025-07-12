@@ -24,6 +24,25 @@ export const lambdaHandler = async (event, context) => {
     }
   }
 
+  // Handle health check (authorized by policy exemption)
+  if (event.path === '/health') {
+    console.log('🏥 Health check endpoint - returning service status')
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        status: 'healthy',
+        service: 'sam-local-api',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+        environment: process.env.NODE_ENV || 'development'
+      })
+    }
+  }
+
   try {
     // Extract the policy path from the API Gateway path
     // Convert /policies/dnc/can_contact -> /v1/data/policies/dnc/can_contact

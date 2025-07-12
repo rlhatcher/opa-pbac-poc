@@ -220,6 +220,53 @@ app.get('/api/app/logs', (req, res) => {
   res.json(dashboardData.appLogs)
 })
 
+// Health check proxy endpoints (avoid CORS issues)
+app.get('/api/health/opa', async (req, res) => {
+  try {
+    const response = await axios.get('http://localhost:8181/health', {
+      timeout: 5000
+    })
+    res.json({ status: 'healthy', service: 'opa', data: response.data })
+  } catch (error) {
+    console.warn('OPA health check failed:', error.message)
+    res
+      .status(503)
+      .json({ status: 'unhealthy', service: 'opa', error: error.message })
+  }
+})
+
+app.get('/api/health/preferences', async (req, res) => {
+  try {
+    const response = await axios.get('http://localhost:3002/health', {
+      timeout: 5000
+    })
+    res.json({ status: 'healthy', service: 'preferences', data: response.data })
+  } catch (error) {
+    console.warn('Preferences health check failed:', error.message)
+    res
+      .status(503)
+      .json({
+        status: 'unhealthy',
+        service: 'preferences',
+        error: error.message
+      })
+  }
+})
+
+app.get('/api/health/sam', async (req, res) => {
+  try {
+    const response = await axios.get('http://localhost:3000/health', {
+      timeout: 5000
+    })
+    res.json({ status: 'healthy', service: 'sam', data: response.data })
+  } catch (error) {
+    console.warn('SAM health check failed:', error.message)
+    res
+      .status(503)
+      .json({ status: 'unhealthy', service: 'sam', error: error.message })
+  }
+})
+
 // OPA Proxy for Swagger UI
 app.post('/api/pep/opa-proxy/*', async (req, res) => {
   try {
