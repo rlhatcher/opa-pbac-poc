@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# OPA + DNC Policy POC Setup Script
+# OPA + Lambda Authorizer POC - Complete End-to-End Setup
 set -e
 
-echo "🚀 OPA + DNC Policy POC Setup"
+echo "🚀 OPA + Lambda Authorizer POC - Complete Setup"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -33,11 +33,11 @@ check_service() {
     return 1
 }
 
-# Step 1: Start all services
-echo -e "${BLUE}📦 Starting services...${NC}"
+# Step 1: Start Docker services
+echo -e "${BLUE}📦 Starting Docker services...${NC}"
 docker-compose up -d
 
-# Step 2: Check services
+# Step 2: Check Docker services
 check_service "http://localhost:8181/health" "OPA Server"
 check_service "http://localhost:3002/project-types" "Preferences Service"
 check_service "http://localhost:3003/" "Swagger UI"
@@ -46,39 +46,60 @@ check_service "http://localhost:3003/" "Swagger UI"
 echo -e "${BLUE}📊 Loading DNC data...${NC}"
 ./scripts/load-dnc-data.sh || echo -e "${YELLOW}⚠️  Data loading had issues, continuing...${NC}"
 
-# Step 4: Test DNC policy
-echo -e "${BLUE}🧪 Testing DNC Policy...${NC}"
+# Step 4: Build SAM application
+echo -e "${BLUE}🔨 Building SAM application...${NC}"
+cd sam-app
+sam build
 
-echo "Testing pharmaceutical blocking:"
-RESULT1=$(curl -s -X POST http://localhost:8181/v1/data/policies/dnc/can_contact \
-  -H "Content-Type: application/json" \
-  -d '{"input":{"expert":{"id":"expert_999","country_id":"US"},"project":{"type":"pharmaceuticals"}}}' | jq -r '.result')
+# Step 5: Set dummy AWS credentials for local testing
+echo -e "${BLUE}🔑 Setting up local AWS credentials...${NC}"
+export AWS_ACCESS_KEY_ID=dummy
+export AWS_SECRET_ACCESS_KEY=dummy
+export AWS_DEFAULT_REGION=us-east-1
 
-if [ "$RESULT1" = "false" ]; then
-    echo -e "${GREEN}✅ Pharmaceutical blocking works${NC}"
-else
-    echo -e "${YELLOW}⚠️  Pharmaceutical test failed${NC}"
+# Step 6: Start SAM local services
+echo -e "${BLUE}🚀 Starting SAM local API...${NC}"
+sam local start-api --port 3000 --skip-pull-image --warm-containers EAGER &
+SAM_API_PID=$!
+
+echo -e "${BLUE}🚀 Starting SAM local Lambda...${NC}"
+sam local start-lambda --port 3001 --skip-pull-image --warm-containers EAGER &
+SAM_LAMBDA_PID=$!
+
+# Step 7: Check SAM services
+check_service "http://localhost:3000" "SAM Local API"
+check_service "http://localhost:3001/2015-03-31/functions" "SAM Local Lambda"
+
+cd ..
+
+# Step 8: Run comprehensive tests
+echo -e "${BLUE}🧪 Running comprehensive tests...${NC}"
+cd sam-app
+
+# Install dependencies if needed
+if [ ! -d "opa-poc/node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    cd opa-poc
+    npm install
+    cd ..
 fi
 
-echo "Testing technology allowing (expert with no exclusions):"
-RESULT2=$(curl -s -X POST http://localhost:8181/v1/data/policies/dnc/can_contact \
-  -H "Content-Type: application/json" \
-  -d '{"input":{"expert":{"id":"expert_123","country_id":"US","current_company_id":"comp_999"},"project":{"type":"technology","id":"proj_123"}}}' | jq -r '.result')
+# Run all tests
+echo "Running all Playwright tests..."
+npx playwright test --reporter=list
 
-if [ "$RESULT2" = "true" ]; then
-    echo -e "${GREEN}✅ Technology allowing works${NC}"
-else
-    echo -e "${YELLOW}⚠️  Technology test failed (expert_123 should have no exclusions)${NC}"
-fi
+cd ..
 
-# Step 5: Show what's available
+# Step 9: Show what's available
 echo ""
-echo -e "${GREEN}🎉 POC Setup Complete!${NC}"
+echo -e "${GREEN}🎉 Complete POC Setup Finished!${NC}"
 echo ""
 echo -e "${BLUE}Available services:${NC}"
 echo "  📊 OPA Server: http://localhost:8181"
 echo "  🎭 Preferences Service: http://localhost:3002"
 echo "  📖 Swagger UI: http://localhost:3003"
+echo "  🌐 SAM Local API: http://localhost:3000"
+echo "  🔧 SAM Local Lambda: http://localhost:3001"
 echo ""
 echo -e "${BLUE}Quick tests:${NC}"
 echo "  # Test DNC policy"
@@ -86,26 +107,29 @@ echo "  curl -X POST http://localhost:8181/v1/data/policies/dnc/can_contact \\"
 echo "    -H 'Content-Type: application/json' \\"
 echo "    -d '{\"input\":{\"expert\":{\"id\":\"expert_999\"},\"project\":{\"type\":\"pharmaceuticals\"}}}'"
 echo ""
+echo "  # Test authorization policy"
+echo "  curl -X POST http://localhost:8181/v1/data/policies/allow \\"
+echo "    -H 'Content-Type: application/json' \\"
+echo "    -d '{\"input\":{\"method\":\"GET\",\"path\":[\"user\",\"alice\"],\"token\":{\"payload\":{\"sub\":\"alice\",\"roles\":[\"user\"]}}}}'"
+echo ""
 echo "  # Test preferences service"
 echo "  curl -H 'Authorization: Bearer mock-token' http://localhost:3002/preferences/expert_999"
 echo ""
-echo "  # Run all tests"
-echo "  cd sam-app && npx playwright test dnc-policy.spec.js"
+echo "  # Run all tests again"
+echo "  cd sam-app && npx playwright test"
 echo ""
-echo -e "${BLUE}To stop:${NC}"
+echo -e "${BLUE}To stop all services:${NC}"
+echo "  kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true"
 echo "  docker-compose down"
 echo ""
+echo -e "${GREEN}🚀 Complete End-to-End POC Ready!${NC}"
+echo -e "${GREEN}✅ OPA Server + Policies${NC}"
+echo -e "${GREEN}✅ Mock Services + Documentation${NC}"
+echo -e "${GREEN}✅ Lambda Authorizer Integration${NC}"
+echo -e "${GREEN}✅ Comprehensive Test Suite${NC}"
 
-if [ "$RESULT1" = "false" ]; then
-    echo -e "${GREEN}🚀 DNC Policy is working correctly!${NC}"
-    echo -e "${GREEN}✅ Core functionality verified: pharmaceutical blocking works${NC}"
-    echo -e "${GREEN}✅ All three data sources integrated: build-time, runtime, external API${NC}"
-    if [ "$RESULT2" = "true" ]; then
-        echo -e "${GREEN}✅ Technology allowing verified: static preferences data working${NC}"
-    else
-        echo -e "${YELLOW}ℹ️  Technology test failed - check expert_123 preferences and policy logic${NC}"
-        echo -e "${YELLOW}ℹ️  Run comprehensive tests for detailed scenarios: cd sam-app && npx playwright test${NC}"
-    fi
-else
-    echo -e "${YELLOW}⚠️  Core DNC functionality failed - check the services${NC}"
-fi
+# Keep script running to maintain SAM services
+echo ""
+echo "Press Ctrl+C to stop all services..."
+trap "echo 'Stopping services...'; kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true; docker-compose down; exit" INT
+wait $SAM_API_PID

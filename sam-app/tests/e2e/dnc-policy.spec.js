@@ -1,9 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
 
 test.describe('Do Not Contact (DNC) Policy Tests', () => {
-  test.use({ baseURL: 'http://localhost:8181' });
+  test.use({ baseURL: 'http://localhost:8181' })
 
-  test('should allow contact when no DNC restrictions apply', async ({ request }) => {
+  test('should allow contact when no DNC restrictions apply', async ({
+    request
+  }) => {
     const input = {
       expert: {
         id: 'expert_123',
@@ -16,18 +18,20 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'technology',
         title: 'Cloud Migration Assessment'
       }
-    };
+    }
 
     const response = await request.post('/v1/data/policies/dnc/can_contact', {
       data: { input }
-    });
+    })
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result.result).toBe(true);
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(true)
+  })
 
-  test('should block contact when expert works for DNC company', async ({ request }) => {
+  test('should block contact when expert works for DNC company', async ({
+    request
+  }) => {
     const input = {
       expert: {
         id: 'expert_456',
@@ -40,18 +44,20 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'financial_services',
         title: 'Banking System Review'
       }
-    };
+    }
 
     const response = await request.post('/v1/data/policies/dnc/can_contact', {
       data: { input }
-    });
+    })
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result.result).toBe(false);
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(false)
+  })
 
-  test('should block contact when expert is in sanctioned country', async ({ request }) => {
+  test('should block contact when expert is in sanctioned country', async ({
+    request
+  }) => {
     const input = {
       expert: {
         id: 'expert_789',
@@ -64,16 +70,16 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'energy',
         title: 'Oil Refinery Optimization'
       }
-    };
+    }
 
     const response = await request.post('/v1/data/policies/dnc/can_contact', {
       data: { input }
-    });
+    })
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result.result).toBe(false);
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(false)
+  })
 
   test('should block contact for multiple DNC reasons', async ({ request }) => {
     const input = {
@@ -88,48 +94,16 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'technology',
         title: 'AI Development Project'
       }
-    };
+    }
 
     const response = await request.post('/v1/data/policies/dnc/can_contact', {
       data: { input }
-    });
+    })
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result.result).toBe(false);
-  });
-
-  test('should provide detailed decision information', async ({ request }) => {
-    const input = {
-      expert: {
-        id: 'expert_000',
-        current_company_id: 'comp_002', // DNC company
-        country_id: 'RU', // DNC country
-        name: 'Vladimir Petrov'
-      },
-      project: {
-        id: 'proj_303',
-        type: 'technology',
-        title: 'AI Development Project'
-      }
-    };
-
-    const response = await request.post('/v1/data/policies/dnc/decision_details', {
-      data: { input }
-    });
-
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    
-    expect(result.result.can_contact).toBe(false);
-    expect(result.result.dnc_reasons).toContain('dnc_company');
-    expect(result.result.dnc_reasons).toContain('dnc_country');
-    expect(result.result.expert_id).toBe('expert_000');
-    expect(result.result.project_id).toBe('proj_303');
-    expect(result.result.project_type).toBe('technology');
-    expect(result.result.checks).toBeDefined();
-    expect(result.result.timestamp).toBeDefined();
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(false)
+  })
 
   test('should handle invalid input gracefully', async ({ request }) => {
     const input = {
@@ -141,18 +115,20 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         id: 'proj_404'
         // Missing type
       }
-    };
+    }
 
     const response = await request.post('/v1/data/policies/dnc/can_contact', {
       data: { input }
-    });
+    })
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result.result).toBe(false);
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(false)
+  })
 
-  test('should provide blocked company details when applicable', async ({ request }) => {
+  test('should provide blocked company details when applicable', async ({
+    request
+  }) => {
     const input = {
       expert: {
         id: 'expert_456',
@@ -165,23 +141,28 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'financial_services',
         title: 'Banking System Review'
       }
-    };
+    }
 
-    const response = await request.post('/v1/data/policies/dnc/blocked_company', {
-      data: { input }
-    });
+    const response = await request.post(
+      '/v1/data/policies/dnc/blocked_company',
+      {
+        data: { input }
+      }
+    )
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    
-    expect(result.result).toBeDefined();
-    expect(result.result.id).toBe('comp_001');
-    expect(result.result.name).toBe('Confidential Corp');
-    expect(result.result.reason).toBe('Client confidentiality agreement');
-    expect(result.result.category).toBe('client_restriction');
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
 
-  test('should provide blocked country details when applicable', async ({ request }) => {
+    expect(result.result).toBeDefined()
+    expect(result.result.id).toBe('comp_001')
+    expect(result.result.name).toBe('Confidential Corp')
+    expect(result.result.reason).toBe('Client confidentiality agreement')
+    expect(result.result.category).toBe('client_restriction')
+  })
+
+  test('should provide blocked country details when applicable', async ({
+    request
+  }) => {
     const input = {
       expert: {
         id: 'expert_789',
@@ -194,21 +175,24 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'technology',
         title: 'Advanced Tech Project'
       }
-    };
+    }
 
-    const response = await request.post('/v1/data/policies/dnc/blocked_country', {
-      data: { input }
-    });
+    const response = await request.post(
+      '/v1/data/policies/dnc/blocked_country',
+      {
+        data: { input }
+      }
+    )
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    
-    expect(result.result).toBeDefined();
-    expect(result.result.id).toBe('CN');
-    expect(result.result.name).toBe('China');
-    expect(result.result.reason).toBe('Export control restrictions');
-    expect(result.result.category).toBe('export_control');
-  });
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+
+    expect(result.result).toBeDefined()
+    expect(result.result.id).toBe('CN')
+    expect(result.result.name).toBe('China')
+    expect(result.result.reason).toBe('Export control restrictions')
+    expect(result.result.category).toBe('export_control')
+  })
 
   test('should validate all required input fields', async ({ request }) => {
     const input = {
@@ -223,14 +207,17 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
         type: 'technology',
         title: 'Cloud Migration Assessment'
       }
-    };
+    }
 
-    const response = await request.post('/v1/data/policies/dnc/input_is_valid', {
-      data: { input }
-    });
+    const response = await request.post(
+      '/v1/data/policies/dnc/input_is_valid',
+      {
+        data: { input }
+      }
+    )
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result.result).toBe(true);
-  });
-});
+    expect(response.ok()).toBeTruthy()
+    const result = await response.json()
+    expect(result.result).toBe(true)
+  })
+})

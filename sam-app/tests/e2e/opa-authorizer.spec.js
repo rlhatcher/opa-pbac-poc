@@ -121,7 +121,7 @@ test.describe('Lambda Authorizer Integration Tests', () => {
     }
 
     const response = await request.post(
-      '/2015-03-31/functions/function/invocations',
+      '/2015-03-31/functions/AuthorizerFunction/invocations',
       {
         data: authEvent
       }
@@ -148,7 +148,7 @@ test.describe('Lambda Authorizer Integration Tests', () => {
     }
 
     const response = await request.post(
-      '/2015-03-31/functions/function/invocations',
+      '/2015-03-31/functions/AuthorizerFunction/invocations',
       {
         data: authEvent
       }
@@ -173,7 +173,7 @@ test.describe('Lambda Authorizer Integration Tests', () => {
     }
 
     const response = await request.post(
-      '/2015-03-31/functions/function/invocations',
+      '/2015-03-31/functions/AuthorizerFunction/invocations',
       {
         data: authEvent
       }

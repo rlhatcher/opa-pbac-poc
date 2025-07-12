@@ -56,54 +56,47 @@ opted_out_by_preference if {
 		"timeout": "5s",
 	})
 
-	# Check if call was successful
+	# Check if response is successful and contains exclusions
 	response.status_code == 200
 
 	# Check if project type is in exclusions
-	response.body.exclusions[_] == input.project.type
+	input.project.type in response.body.exclusions
 }
 
 # Helper: Get preferences service URL from data or environment
-preferences_service_url := url if {
-	url := data.config.config.preferences_service_url
-} else := "http://preferences-service:3002"
+default preferences_service_url := "http://preferences-service:3002"
+
+preferences_service_url := data.config.config.preferences_service_url
 
 # Helper: Get preferences service token from data
-preferences_service_token := token if {
-	token := data.config.config.preferences_service_token
-} else := "mock-token"
+default preferences_service_token := "mock-token"
 
-# Detailed decision information for debugging/auditing
-decision_details := {
-	"can_contact": can_contact,
-	"expert_id": input.expert.id,
-	"project_id": input.project.id,
-	"project_type": input.project.type,
-	"checks": {
-		"input_valid": input_is_valid,
-		"employed_by_dnc_company": employed_by_dnc_company,
-		"located_in_dnc_country": located_in_dnc_country,
-		"opted_out_by_preference": opted_out_by_preference,
-	},
-	"dnc_reasons": dnc_reasons,
-	"timestamp": time.now_ns(),
-}
+preferences_service_token := data.config.config.preferences_service_token
 
 # Collect all reasons why contact is not allowed
-dnc_reasons contains "invalid_input" if not input_is_valid
-dnc_reasons contains "dnc_company" if employed_by_dnc_company
-dnc_reasons contains "dnc_country" if located_in_dnc_country
-dnc_reasons contains "expert_preference" if opted_out_by_preference
+dnc_reasons contains "invalid_input" if {
+	not input_is_valid
+}
+
+dnc_reasons contains "dnc_company" if {
+	employed_by_dnc_company
+}
+
+dnc_reasons contains "dnc_country" if {
+	located_in_dnc_country
+}
+
+dnc_reasons contains "expert_preference" if {
+	opted_out_by_preference
+}
 
 # Company details for auditing (if blocked by company)
-blocked_company := company if {
+blocked_company := data.data.companies[input.expert.current_company_id] if {
 	employed_by_dnc_company
-	company := data.data.companies[input.expert.current_company_id]
 }
 
 # Country details for auditing (if blocked by country)
 # Uses build-time data (baked into container)
-blocked_country := country if {
+blocked_country := data.countries[input.expert.country_id] if {
 	located_in_dnc_country
-	country := data.countries[input.expert.country_id]
 }
