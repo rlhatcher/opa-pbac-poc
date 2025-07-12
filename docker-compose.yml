@@ -72,3 +72,36 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  pap-service:
+    build:
+      context: ./pap-service
+      dockerfile: Dockerfile
+    ports:
+      - '3004:3004'
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - OPA_URL=http://opa:8181
+      - PREFERENCES_URL=http://preferences-service:3002
+      - SAM_API_URL=http://host.docker.internal:3000
+      - SAM_LAMBDA_URL=http://host.docker.internal:3001
+    volumes:
+      - ./pap-service:/app
+      - /app/node_modules
+    depends_on:
+      - opa
+      - preferences-service
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3004/'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3

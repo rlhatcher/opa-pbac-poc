@@ -1,0 +1,35 @@
+{
+  "name": "opa-pap-service",
+  "version": "1.0.0",
+  "description": "Policy Administration Point (PAP) Dashboard for OPA PBAC POC",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:frontend\"",
+    "build": "cd frontend && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "opa",
+    "pbac",
+    "pap",
+    "policy",
+    "administration"
+  ],
+  "author": "OPA PBAC POC",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "nodemon": "^3.0.2"
+  }
+}

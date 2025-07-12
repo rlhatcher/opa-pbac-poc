@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPA PAP Dashboard - Policy Administration Point</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css"
+    />
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>🛡️ OPA PBAC Dashboard - Policy Administration Point (PAP)</h1>
+      <div class="status-indicators">
+        <div class="status" id="opa-status">OPA: <span>Checking...</span></div>
+        <div class="status" id="preferences-status">
+          Preferences: <span>Checking...</span>
+        </div>
+        <div class="status" id="sam-status">
+          SAM Local: <span>Checking...</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-grid">
+      <!-- Q1: PEP Interface (Policy Enforcement Point) -->
+      <section class="quadrant" id="q1-pep">
+        <h2>🚪 Q1: PEP Interface (Policy Enforcement Point)</h2>
+        <div class="quadrant-content">
+          <div class="tabs">
+            <button
+              class="tab-button active"
+              onclick="switchPepTab('policies-api-tab')"
+            >
+              Policy API
+            </button>
+            <button class="tab-button" onclick="switchPepTab('quick-test-tab')">
+              Quick Test
+            </button>
+            <button class="tab-button" onclick="switchPepTab('response-tab')">
+              Response
+            </button>
+          </div>
+
+          <!-- Policy API Swagger UI -->
+          <div id="policies-api-tab" class="tab-content active">
+            <div class="swagger-container">
+              <div id="swagger-ui"></div>
+            </div>
+          </div>
+
+          <!-- Quick Test Forms -->
+          <div id="quick-test-tab" class="tab-content">
+            <div class="quick-test-tabs">
+              <button
+                class="quick-tab-button active"
+                onclick="switchQuickTab('dnc-quick')"
+              >
+                DNC Policy
+              </button>
+              <button
+                class="quick-tab-button"
+                onclick="switchQuickTab('authz-quick')"
+              >
+                Authorization
+              </button>
+            </div>
+
+            <!-- DNC Quick Test -->
+            <div id="dnc-quick" class="quick-tab-content active">
+              <h4>Quick DNC Policy Test</h4>
+              <form id="dnc-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Expert ID:</label>
+                    <input
+                      type="text"
+                      id="expert-id"
+                      value="expert_123"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Country ID:</label>
+                    <input type="text" id="country-id" value="US" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Company ID:</label>
+                    <input type="text" id="company-id" value="comp_456" />
+                  </div>
+                  <div class="form-group">
+                    <label>Project Type:</label>
+                    <select id="project-type" required>
+                      <option value="technology">Technology</option>
+                      <option value="financial_services">
+                        Financial Services
+                      </option>
+                      <option value="healthcare">Healthcare</option>
+                      <option value="pharmaceuticals">Pharmaceuticals</option>
+                      <option value="manufacturing">Manufacturing</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit">Test DNC Policy</button>
+              </form>
+            </div>
+
+            <!-- Authorization Quick Test -->
+            <div id="authz-quick" class="quick-tab-content">
+              <h4>Quick Authorization Test</h4>
+              <form id="authz-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>HTTP Method:</label>
+                    <select id="http-method" required>
+                      <option value="GET">GET</option>
+                      <option value="PUT">PUT</option>
+                      <option value="PATCH">PATCH</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Path:</label>
+                    <input
+                      type="text"
+                      id="request-path"
+                      value="user,alice"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>User Subject:</label>
+                    <input
+                      type="text"
+                      id="user-subject"
+                      value="alice"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>User Roles:</label>
+                    <input
+                      type="text"
+                      id="user-roles"
+                      value="user"
+                      placeholder="comma-separated"
+                    />
+                  </div>
+                </div>
+                <button type="submit">Test Authorization</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Response Display -->
+          <div id="response-tab" class="tab-content">
+            <div class="response-section">
+              <h3>Latest Response</h3>
+              <div class="response-controls">
+                <button onclick="clearResponse()">Clear</button>
+                <button onclick="copyResponse()">Copy</button>
+              </div>
+              <pre id="pep-response">No requests yet...</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Q2: PDP Logs (Policy Decision Point) -->
+      <section class="quadrant" id="q2-pdp">
+        <h2>⚖️ Q2: PDP Logs (Policy Decision Point)</h2>
+        <div class="quadrant-content">
+          <div class="controls">
+            <button onclick="clearPdpLogs()">Clear Logs</button>
+            <label>
+              <input type="checkbox" id="auto-scroll-pdp" checked /> Auto-scroll
+            </label>
+          </div>
+          <div class="log-container" id="pdp-logs">
+            <div class="log-entry">Waiting for OPA decision logs...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Q3: PIP Data Management (Policy Information Point) -->
+      <section class="quadrant" id="q3-pip">
+        <h2>📊 Q3: PIP Data Management (Policy Information Point)</h2>
+        <div class="quadrant-content">
+          <div class="tabs">
+            <button
+              class="tab-button active"
+              onclick="switchPipTab('companies-pip')"
+            >
+              Companies
+            </button>
+            <button class="tab-button" onclick="switchPipTab('countries-pip')">
+              Countries
+            </button>
+            <button
+              class="tab-button"
+              onclick="switchPipTab('preferences-pip')"
+            >
+              Preferences
+            </button>
+          </div>
+
+          <!-- Companies Data -->
+          <div id="companies-pip" class="tab-content active">
+            <h3>DNC Companies</h3>
+            <div class="data-controls">
+              <button onclick="loadPipData()">Refresh Data</button>
+              <button onclick="addCompany()">Add Company</button>
+            </div>
+            <div id="companies-data" class="data-display">
+              Loading companies data...
+            </div>
+          </div>
+
+          <!-- Countries Data -->
+          <div id="countries-pip" class="tab-content">
+            <h3>DNC Countries</h3>
+            <div class="data-controls">
+              <button onclick="loadPipData()">Refresh Data</button>
+              <button onclick="addCountry()">Add Country</button>
+            </div>
+            <div id="countries-data" class="data-display">
+              Loading countries data...
+            </div>
+          </div>
+
+          <!-- Preferences Data -->
+          <div id="preferences-pip" class="tab-content">
+            <h3>Expert Preferences</h3>
+            <div class="data-controls">
+              <button onclick="loadPreferences()">Refresh Data</button>
+              <button onclick="addPreference()">Add Preference</button>
+            </div>
+            <div id="preferences-data" class="data-display">
+              Loading preferences data...
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Q4: Application Service Logs -->
+      <section class="quadrant" id="q4-app">
+        <h2>🔧 Q4: Application Service Logs</h2>
+        <div class="quadrant-content">
+          <div class="controls">
+            <button onclick="clearAppLogs()">Clear Logs</button>
+            <label>
+              <input type="checkbox" id="auto-scroll-app" checked /> Auto-scroll
+            </label>
+          </div>
+          <div class="log-container" id="app-logs">
+            <div class="log-entry">Waiting for application logs...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="dashboard.js"></script>
+  </body>
+</html>
