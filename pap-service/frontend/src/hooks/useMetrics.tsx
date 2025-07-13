@@ -27,7 +27,16 @@ interface DashboardData {
   appLogs: any[]
 }
 
-export function useMetrics(dashboardData: DashboardData) {
+interface ServiceStatus {
+  opa: boolean
+  preferences: boolean
+  sam: boolean
+}
+
+export function useMetrics(
+  dashboardData: DashboardData,
+  serviceStatus?: ServiceStatus
+) {
   const [serviceMetrics, setServiceMetrics] = useState<MetricsData>({
     apiGateway: {
       lastActivity: 'No activity',
@@ -145,7 +154,7 @@ export function useMetrics(dashboardData: DashboardData) {
           count: allAuthLogs.length + allDncLogs.length,
           allows: authAllows + dncAllows,
           denys: authDenys + dncDenys,
-          status: lastAuthLog || lastDncLog ? 'active' : 'idle'
+          status: serviceStatus?.opa ? 'active' : 'idle'
         },
         dncService: {
           lastActivity: dncActivity,

@@ -123,11 +123,11 @@ export function AppLogs({ logs }: AppLogsProps) {
       </div>
 
       {/* Log Display */}
-      <div className='flex-1 bg-black rounded-md overflow-hidden'>
+      <div className='flex-1 bg-card border rounded-md overflow-hidden'>
         <ScrollArea className='h-full'>
           <div ref={scrollRef} className='p-4 font-mono text-sm space-y-1'>
             {filteredLogs.length === 0 ? (
-              <div className='text-green-400'>
+              <div className='text-muted-foreground'>
                 {filter
                   ? 'No logs match the filter...'
                   : 'Waiting for application logs...'}
@@ -140,7 +140,7 @@ export function AppLogs({ logs }: AppLogsProps) {
                     index === 0 ? 'animate-pulse' : ''
                   }`}
                 >
-                  <span className='text-gray-500 text-xs'>
+                  <span className='text-muted-foreground text-xs'>
                     [{formatTimestamp(log.timestamp)}]
                   </span>
 
@@ -164,7 +164,7 @@ export function AppLogs({ logs }: AppLogsProps) {
                     </span>
                   )}
 
-                  <span className='text-gray-300 text-xs flex-1'>
+                  <span className='text-foreground text-xs flex-1'>
                     {log.message}
                   </span>
                 </div>

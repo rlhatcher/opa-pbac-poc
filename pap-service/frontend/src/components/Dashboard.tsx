@@ -78,7 +78,10 @@ export function Dashboard() {
     enabled: socketEnabled
   })
 
-  const { serviceMetrics, flashStates } = useMetrics(dashboardData)
+  const { serviceMetrics, flashStates } = useMetrics(
+    dashboardData,
+    serviceStatus
+  )
 
   // Auto-refresh for dashboard data
   // Reduce refresh frequency when socket is enabled since we get real-time updates

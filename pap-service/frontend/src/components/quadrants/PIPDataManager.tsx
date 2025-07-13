@@ -367,11 +367,7 @@ export function PIPDataManager({
                                   ? 'default'
                                   : 'destructive'
                               }
-                              className={`text-xs ${
-                                expert.contact_allowed
-                                  ? 'bg-green-600 hover:bg-green-700'
-                                  : ''
-                              }`}
+                              className='text-xs'
                             >
                               {expert.contact_allowed ? 'Yes' : 'No'}
                             </Badge>

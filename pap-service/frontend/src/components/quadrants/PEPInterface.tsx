@@ -18,8 +18,50 @@ interface PEPInterfaceProps {
   socket: Socket | null
 }
 
+interface PolicyResponse {
+  timestamp: string
+  request: {
+    expert?: {
+      id: string
+      current_company_id?: string
+      country_id?: string
+    }
+    project?: {
+      id: string
+      type: string
+    }
+    method?: string
+    path?: string[]
+    token?: {
+      payload: {
+        sub: string
+        roles: string[]
+      }
+    }
+  }
+  response?: {
+    decision_id?: string
+    result: boolean
+    message?: string
+    reasons?: string[]
+    blocked_company?: string
+    blocked_country?: string
+    validation_errors?: string[]
+    located_in_dnc_country?: boolean
+  }
+  error?: string
+  type:
+    | 'dnc-policy'
+    | 'authz-policy'
+    | 'dnc-policy-error'
+    | 'authz-policy-error'
+  decision?: 'ALLOW' | 'DENY'
+}
+
 export function PEPInterface({ socket }: PEPInterfaceProps) {
-  const [latestResponse, setLatestResponse] = useState<any>(null)
+  const [latestResponse, setLatestResponse] = useState<PolicyResponse | null>(
+    null
+  )
   const [isLoading, setIsLoading] = useState(false)
   // const [requestHistory, setRequestHistory] = useState<any[]>([]) // TODO: Add history UI
   const [connectionStatus, setConnectionStatus] = useState<
@@ -92,7 +134,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
       const decisionId = papResult.timestamp
 
       // Format the result - include details only for DENY decisions
-      const result = {
+      const result: PolicyResponse = {
         timestamp: new Date().toISOString(),
         request: { expert, project },
         response: canContact
@@ -131,7 +173,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
         // setRequestHistory((prev) => [result, ...prev.slice(0, 9)])
       }
     } catch (error) {
-      const errorResult = {
+      const errorResult: PolicyResponse = {
         timestamp: new Date().toISOString(),
         request: { expert, project },
         error: (error as Error).message,
@@ -187,7 +229,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
       const papResult = await response.json()
 
       // Format the result from PAP service response
-      const result = {
+      const result: PolicyResponse = {
         timestamp: papResult.timestamp,
         request: { method, path, token },
         response: papResult.response,
@@ -202,7 +244,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
         // setRequestHistory((prev) => [result, ...prev.slice(0, 9)])
       }
     } catch (error) {
-      const errorResult = {
+      const errorResult: PolicyResponse = {
         timestamp: new Date().toISOString(),
         request: { method, path, token },
         error: (error as Error).message,
@@ -240,7 +282,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
     }
   }
 
-  const getResultIcon = (result: any) => {
+  const getResultIcon = (result: PolicyResponse) => {
     if (result?.error) {
       return <XCircle className='h-4 w-4 text-destructive' />
     }

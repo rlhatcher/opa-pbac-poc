@@ -30,8 +30,8 @@ export function MetricCard({
     if (!flashState) return ''
 
     return flashState === 'allow'
-      ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800 transition-colors duration-500'
-      : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800 transition-colors duration-500'
+      ? 'bg-primary/10 border-primary/20 dark:bg-primary/20 dark:border-primary/30 transition-colors duration-500'
+      : 'bg-destructive/10 border-destructive/20 dark:bg-destructive/20 dark:border-destructive/30 transition-colors duration-500'
   }
 
   return (
@@ -52,16 +52,10 @@ export function MetricCard({
           {/* Allow/Deny counts */}
           {!hideDecisions && (
             <div className='flex items-center space-x-2 text-xs'>
-              <Badge
-                variant='default'
-                className='bg-green-600 text-white hover:bg-green-700 font-semibold'
-              >
+              <Badge variant='default' className='font-semibold'>
                 ✓ {allows} Allow
               </Badge>
-              <Badge
-                variant='destructive'
-                className='bg-red-600 text-white hover:bg-red-700 font-semibold'
-              >
+              <Badge variant='destructive' className='font-semibold'>
                 ✗ {denys} Deny
               </Badge>
             </div>
