@@ -26,10 +26,13 @@ interface PIPDataManagerProps {
   socket: Socket | null
 }
 
-export function PIPDataManager({ data, socket }: PIPDataManagerProps) {
+export function PIPDataManager({
+  data: _data,
+  socket: _socket
+}: PIPDataManagerProps) {
   // Get PAP service URL from environment variables, fallback to localhost for development
-  const papServiceUrl =
-    import.meta.env.VITE_PAP_SERVICE_URL || 'http://localhost:3004'
+  // const papServiceUrl =
+  //   import.meta.env.VITE_PAP_SERVICE_URL || 'http://localhost:3004'
 
   const [editingData, setEditingData] = useState<PIPData>({
     companies: {},
@@ -95,68 +98,72 @@ export function PIPDataManager({ data, socket }: PIPDataManagerProps) {
     }
   }
 
-  const saveCompanies = async () => {
-    setIsLoading(true)
-    try {
-      // Save to localStorage for now (since we can't write to disk from browser)
-      localStorage.setItem(
-        'dnc_companies',
-        JSON.stringify(editingData.companies)
-      )
-      console.log('Companies data saved to localStorage')
-    } catch (error) {
-      console.error('Failed to save companies data:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // TODO: Implement save functionality
+  // const saveCompanies = async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     // Save to localStorage for now (since we can't write to disk from browser)
+  //     localStorage.setItem(
+  //       'dnc_companies',
+  //       JSON.stringify(editingData.companies)
+  //     )
+  //     console.log('Companies data saved to localStorage')
+  //   } catch (error) {
+  //     console.error('Failed to save companies data:', error)
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
 
-  const saveCountries = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`${papServiceUrl}/api/pip/countries`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingData.countries)
-      })
+  // TODO: Implement save functionality
+  // const saveCountries = async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     const response = await fetch(`${papServiceUrl}/api/pip/countries`, {
+  //       method: 'PUT',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify(editingData.countries)
+  //     })
 
-      if (response.ok) {
-        console.log('Countries data saved successfully')
-      }
-    } catch (error) {
-      console.error('Failed to save countries data:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  //     if (response.ok) {
+  //       console.log('Countries data saved successfully')
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to save countries data:', error)
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }
 
-  const addCompany = () => {
-    const name = prompt('Enter company name:')
-    if (name) {
-      const id = `comp_${Date.now()}`
-      setEditingData((prev) => ({
-        ...prev,
-        companies: {
-          ...prev.companies,
-          [id]: { name, id, dnc: true }
-        }
-      }))
-    }
-  }
+  // TODO: Implement add functionality
+  // const addCompany = () => {
+  //   const name = prompt('Enter company name:')
+  //   if (name) {
+  //     const id = `comp_${Date.now()}`
+  //     setEditingData((prev) => ({
+  //       ...prev,
+  //       companies: {
+  //         ...prev.companies,
+  //         [id]: { name, id, dnc: true }
+  //       }
+  //     }))
+  //   }
+  // }
 
-  const addCountry = () => {
-    const code = prompt('Enter country code (e.g., CN):')
-    const name = prompt('Enter country name:')
-    if (code && name) {
-      setEditingData((prev) => ({
-        ...prev,
-        countries: {
-          ...prev.countries,
-          [code]: { code, name, sanctioned: true }
-        }
-      }))
-    }
-  }
+  // TODO: Implement add functionality
+  // const addCountry = () => {
+  //   const code = prompt('Enter country code (e.g., CN):')
+  //   const name = prompt('Enter country name:')
+  //   if (code && name) {
+  //     setEditingData((prev) => ({
+  //       ...prev,
+  //       countries: {
+  //         ...prev.countries,
+  //         [code]: { code, name, sanctioned: true }
+  //       }
+  //     }))
+  //   }
+  // }
 
   return (
     <div className='h-full flex flex-col'>

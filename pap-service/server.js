@@ -20,6 +20,7 @@ const io = new Server(server, {
 })
 
 const PORT = process.env.PORT || 3004
+const IS_DOCKER = process.env.DOCKER_ENV === 'true'
 
 // Configuration for external services
 const config = {
@@ -34,6 +35,10 @@ const config = {
   samLocal: {
     apiUrl: process.env.SAM_API_URL || 'http://localhost:3000',
     lambdaUrl: process.env.SAM_LAMBDA_URL || 'http://localhost:3001'
+  },
+  docker: {
+    enabled: IS_DOCKER,
+    containerName: process.env.OPA_CONTAINER_NAME || 'opa-pbac-poc-opa-1'
   }
 }
 
@@ -329,7 +334,7 @@ app.get('/api/dashboard-data', (req, res) => {
 // Health check proxy endpoints (avoid CORS issues)
 app.get('/api/health/opa', async (req, res) => {
   try {
-    const response = await axios.get('http://localhost:8181/health', {
+    const response = await axios.get(`${config.opa.url}/health`, {
       timeout: 5000
     })
     res.json({ status: 'healthy', service: 'opa', data: response.data })
@@ -556,6 +561,53 @@ app.get('/api/openapi.json', (req, res) => {
   res.json(openApiSpec)
 })
 
+// OpenAPI specification for Preferences service
+app.get('/api/openapi/preferences', (req, res) => {
+  const preferencesSpec = {
+    openapi: '3.0.0',
+    info: {
+      title: 'Preferences Service API',
+      version: '1.0.0',
+      description: 'Expert preferences service for PBAC system'
+    },
+    servers: [
+      { url: 'http://localhost:3002', description: 'Preferences service' }
+    ],
+    paths: {
+      '/experts/{expertId}/preferences': {
+        get: {
+          summary: 'Get expert preferences',
+          parameters: [
+            {
+              name: 'expertId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' }
+            }
+          ],
+          responses: {
+            200: {
+              description: 'Expert preferences',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      expertId: { type: 'string' },
+                      preferences: { type: 'object' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  res.json(preferencesSpec)
+})
+
 // OPA Proxy for Swagger UI
 app.post('/api/pep/opa-proxy/*', async (req, res) => {
   try {
@@ -666,17 +718,25 @@ function captureOpaDecisionLog(policyPath, input, result, decisionId) {
 function startOpaLogMonitoring() {
   console.log('📊 Starting OPA decision log monitoring via Docker logs...')
 
+  // Skip Docker log monitoring if running inside Docker container
+  if (IS_DOCKER) {
+    console.log(
+      '📊 Skipping Docker log monitoring (running inside Docker container)'
+    )
+    console.log(
+      '📊 OPA decision logs will be captured via HTTP polling instead'
+    )
+    return
+  }
+
   try {
     // Use docker logs to follow OPA container logs
-    const OPA_CONTAINER_NAME =
-      process.env.OPA_CONTAINER_NAME || 'opa-pbac-poc-opa-1'
-
     const dockerLogs = spawn('docker', [
       'logs',
       '--follow',
       '--tail',
       '0', // Only new logs
-      OPA_CONTAINER_NAME
+      config.docker.containerName
     ])
 
     // Helper function to process OPA log lines

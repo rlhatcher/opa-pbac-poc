@@ -1,10 +1,12 @@
 import { ThemeProvider } from './components/theme-provider'
-import { ModernDashboard } from './components/ModernDashboard'
+import { Dashboard } from './components/Dashboard'
 
 function App() {
   return (
     <ThemeProvider defaultTheme='dark' storageKey='pap-ui-theme'>
-      <ModernDashboard />
+      <div className='min-h-screen bg-background text-foreground'>
+        <Dashboard />
+      </div>
     </ThemeProvider>
   )
 }

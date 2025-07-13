@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 
 // Test JWT tokens for different scenarios
 const createTestJWT = (payload) => {
-  return jwt.sign(payload, 'test-secret', {
+  return jwt.sign(payload, 'your-secret-key', {
     algorithm: 'HS256',
     expiresIn: '1h',
     header: { typ: 'JWT', alg: 'HS256' }

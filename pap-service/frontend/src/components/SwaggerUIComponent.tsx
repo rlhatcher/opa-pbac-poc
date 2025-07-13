@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import SwaggerUI from 'swagger-ui-react'
 import 'swagger-ui-react/swagger-ui.css'
 
@@ -20,7 +20,10 @@ export function SwaggerUIComponent({ spec, title }: SwaggerUIComponentProps) {
   }
 
   // Check if spec has required version field
-  const hasValidVersion = (spec as any)?.openapi || (spec as any)?.swagger
+  // For YAML strings, SwaggerUI will parse them internally
+  const hasValidVersion =
+    typeof spec === 'string' || (spec as any)?.openapi || (spec as any)?.swagger
+
   if (!hasValidVersion) {
     return (
       <div className='text-center py-8 text-red-600'>
@@ -29,7 +32,10 @@ export function SwaggerUIComponent({ spec, title }: SwaggerUIComponentProps) {
           Spec must have either "openapi" or "swagger" version field
         </p>
         <pre className='text-xs mt-2 bg-gray-100 p-2 rounded max-w-md mx-auto overflow-auto'>
-          {JSON.stringify(spec, null, 2).substring(0, 200)}...
+          {typeof spec === 'string'
+            ? (spec as string).substring(0, 200)
+            : JSON.stringify(spec, null, 2).substring(0, 200)}
+          ...
         </pre>
       </div>
     )
@@ -53,11 +59,11 @@ export function SwaggerUIComponent({ spec, title }: SwaggerUIComponentProps) {
             showExtensions={true}
             showCommonExtensions={true}
             tryItOutEnabled={true}
-            requestInterceptor={(request) => {
+            requestInterceptor={(request: any) => {
               // Add any custom headers or modifications here
               return request
             }}
-            responseInterceptor={(response) => {
+            responseInterceptor={(response: any) => {
               // Handle responses here if needed
               return response
             }}
@@ -65,7 +71,7 @@ export function SwaggerUIComponent({ spec, title }: SwaggerUIComponentProps) {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .swagger-ui-wrapper .swagger-ui {
           font-family: inherit;
         }

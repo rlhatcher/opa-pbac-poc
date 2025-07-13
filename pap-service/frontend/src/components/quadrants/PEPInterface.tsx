@@ -21,7 +21,7 @@ interface PEPInterfaceProps {
 export function PEPInterface({ socket }: PEPInterfaceProps) {
   const [latestResponse, setLatestResponse] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [requestHistory, setRequestHistory] = useState<any[]>([])
+  // const [requestHistory, setRequestHistory] = useState<any[]>([]) // TODO: Add history UI
   const [connectionStatus, setConnectionStatus] = useState<
     'connected' | 'disconnected' | 'connecting'
   >('disconnected')
@@ -34,7 +34,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
       // Listen for PEP request responses
       socket.on('pep-request', (data) => {
         setLatestResponse(data)
-        setRequestHistory((prev) => [data, ...prev.slice(0, 9)]) // Keep last 10
+        // setRequestHistory((prev) => [data, ...prev.slice(0, 9)]) // Keep last 10
       })
 
       socket.on('connect', () => setConnectionStatus('connected'))
@@ -128,7 +128,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
       // Add to history if not already added via WebSocket
       if (!socket) {
-        setRequestHistory((prev) => [result, ...prev.slice(0, 9)])
+        // setRequestHistory((prev) => [result, ...prev.slice(0, 9)])
       }
     } catch (error) {
       const errorResult = {
@@ -141,7 +141,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
       // Add to history if not already added via WebSocket
       if (!socket) {
-        setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
+        // setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
       }
     } finally {
       setIsLoading(false)
@@ -199,7 +199,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
       // Add to history if not already added via WebSocket
       if (!socket) {
-        setRequestHistory((prev) => [result, ...prev.slice(0, 9)])
+        // setRequestHistory((prev) => [result, ...prev.slice(0, 9)])
       }
     } catch (error) {
       const errorResult = {
@@ -212,7 +212,7 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
       // Add to history if not already added via WebSocket
       if (!socket) {
-        setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
+        // setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
       }
     } finally {
       setIsLoading(false)
