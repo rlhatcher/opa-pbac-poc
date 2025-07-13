@@ -27,8 +27,7 @@ const sidebarItems = [
   { id: 'decisions', label: 'Decisions', icon: Shield },
   { id: 'data', label: 'Data Management', icon: Database },
   { id: 'logs', label: 'Logs', icon: Terminal },
-  { id: 'documentation', label: 'Documentation', icon: FileText },
-  { id: 'api-docs', label: 'API Documentation', icon: FileText }
+  { id: 'documentation', label: 'Documentation', icon: FileText }
 ]
 
 export function Dashboard() {

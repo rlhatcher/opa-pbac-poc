@@ -213,3 +213,5 @@ $RECYCLE.BIN/
 site/
 pap-service/frontend/public/
 pap-service/frontend/dist/
+sam-app/playwright-report/index.html
+sam-app/playwright-report/index.html

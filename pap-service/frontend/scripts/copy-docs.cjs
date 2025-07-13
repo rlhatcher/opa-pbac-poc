@@ -58,37 +58,5 @@ copyDir(siteDir, publicDir)
 fs.copyFileSync(rootReadme, publicReadme)
 console.log('Copied: README.md')
 
-// Create a docs index file based on mkdocs structure
-const docsIndex = {
-  nav: [
-    { title: 'Home', file: 'index.html' },
-    { title: 'Quick Start', file: 'quick-start/index.html' },
-    { title: 'Policy Documentation', file: 'policies/index.html' },
-    { title: 'SAM Application', file: 'sam-app/index.html' },
-    { title: 'Mock Services', file: 'mock-services/index.html' },
-    { title: 'PAP Dashboard', file: 'pap-dashboard/index.html' },
-    { title: 'Installation Guide', file: 'installation/index.html' },
-    {
-      title: 'API Reference',
-      children: [
-        { title: 'Policies API', file: 'api/policies/index.html' },
-        { title: 'Preferences API', file: 'api/preferences/index.html' }
-      ]
-    }
-  ]
-}
-
-// Create docs subdirectory for index.json
-const docsSubDir = path.join(publicDir, 'docs')
-if (!fs.existsSync(docsSubDir)) {
-  fs.mkdirSync(docsSubDir, { recursive: true })
-}
-
-fs.writeFileSync(
-  path.join(docsSubDir, 'index.json'),
-  JSON.stringify(docsIndex, null, 2)
-)
-console.log('Generated: docs/index.json')
-
 console.log('Documentation copy complete!')
 console.log(`Total files copied to: ${publicDir}`)

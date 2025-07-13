@@ -9,16 +9,96 @@
 .md-search__overlay,
 .md-search__inner,
 .md-search__options,
-.md-header__option[for="__search"] {
+.md-header__option[for='__search'] {
   display: none !important;
 }
 
 /* Hide the search button in header */
-.md-header__button.md-icon[for="__search"] {
+.md-header__button.md-icon[for='__search'] {
   display: none !important;
 }
 
 /* Adjust header layout without search */
 .md-header__inner {
   justify-content: space-between;
+}
+
+/* Custom color scheme using React app theme variables */
+:root {
+  /* Import React app theme variables */
+  --md-primary-fg-color: var(--primary, oklch(0.6296 0.0444 247.4163));
+  --md-primary-fg-color--light: var(--secondary, oklch(0.7107 0.0351 256.7878));
+  --md-primary-fg-color--dark: var(--accent, oklch(0.5544 0.0407 257.4166));
+  --md-accent-fg-color: var(--accent, oklch(0.5544 0.0407 257.4166));
+
+  /* Background colors */
+  --md-default-bg-color: var(--background, oklch(0.9842 0.0034 247.8575));
+  --md-default-fg-color: var(--foreground, oklch(0.2077 0.0398 265.7549));
+  --md-default-fg-color--light: var(
+    --muted-foreground,
+    oklch(0.5544 0.0407 257.4166)
+  );
+  --md-default-fg-color--lighter: var(
+    --muted-foreground,
+    oklch(0.7118 0.0129 286.0665)
+  );
+  --md-default-fg-color--lightest: var(--border, oklch(0.869 0.0198 252.8943));
+
+  /* Code and content */
+  --md-code-bg-color: var(--muted, oklch(0.9288 0.0126 255.5078));
+  --md-code-fg-color: var(--foreground, oklch(0.2077 0.0398 265.7549));
+
+  /* Links */
+  --md-typeset-a-color: var(--primary, oklch(0.6296 0.0444 247.4163));
+}
+
+/* Dark mode colors using React app dark theme variables */
+.dark [data-md-color-scheme='slate'],
+[data-md-color-scheme='slate'] {
+  /* Primary colors - use dark theme variables when available */
+  --md-primary-fg-color: var(--primary, oklch(0.7107 0.0351 256.7878));
+  --md-primary-fg-color--light: var(--accent, oklch(0.5544 0.0407 257.4166));
+  --md-primary-fg-color--dark: var(--secondary, oklch(0.4455 0.0374 257.2808));
+  --md-accent-fg-color: var(--accent, oklch(0.5544 0.0407 257.4166));
+
+  /* Background colors */
+  --md-default-bg-color: var(--background, oklch(0.2077 0.0398 265.7549));
+  --md-default-fg-color: var(--foreground, oklch(0.9551 0 0));
+  --md-default-fg-color--light: var(
+    --muted-foreground,
+    oklch(0.7118 0.0129 286.0665)
+  );
+  --md-default-fg-color--lighter: var(
+    --muted-foreground,
+    oklch(0.5544 0.0407 257.4166)
+  );
+  --md-default-fg-color--lightest: var(--border, oklch(0.3717 0.0392 257.287));
+
+  /* Code and content */
+  --md-code-bg-color: var(--muted, oklch(0.3717 0.0392 257.287));
+  --md-code-fg-color: var(--foreground, oklch(0.9551 0 0));
+
+  /* Links */
+  --md-typeset-a-color: var(--primary, oklch(0.7107 0.0351 256.7878));
+
+  /* Cards and surfaces */
+  --md-default-bg-color--light: var(--card, oklch(0.2795 0.0368 260.031));
+  --md-default-bg-color--lighter: var(--input, oklch(0.3717 0.0392 257.287));
+  --md-default-bg-color--lightest: var(
+    --secondary,
+    oklch(0.4455 0.0374 257.2808)
+  );
+}
+
+/* Ensure smooth theme transitions */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* Improve iframe integration with parent theme */
+body {
+  /* Inherit theme variables from parent when in iframe */
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
 }
