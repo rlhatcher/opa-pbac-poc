@@ -58,9 +58,9 @@ cd sam-app && npx playwright test
 ## Next Steps
 
 - Explore the [PAP Dashboard](http://localhost:5177) for interactive policy testing
-- Review [Policy Documentation](policies/index.md) for detailed policy rules
-- Check [API Reference](api/opa.md) for endpoint documentation
-- See [Development Guide](development/setup.md) for advanced configuration
+- Review [Policy Documentation](policies.md) for detailed policy rules
+- Check [API Reference](api/policies.md) for endpoint documentation
+- See [Installation Guide](installation.md) for advanced configuration
 
 ## Troubleshooting
 

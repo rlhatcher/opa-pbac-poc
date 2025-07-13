@@ -2,102 +2,42 @@
   "nav": [
     {
       "title": "Home",
-      "file": "docs/index.md"
+      "file": "index.html"
     },
     {
       "title": "Quick Start",
-      "file": "docs/quick-start.md"
+      "file": "quick-start/index.html"
     },
     {
-      "title": "Architecture",
-      "children": [
-        {
-          "title": "Overview",
-          "file": "docs/architecture/overview.md"
-        },
-        {
-          "title": "XACML Components",
-          "file": "docs/architecture/xacml.md"
-        },
-        {
-          "title": "Data Flow",
-          "file": "docs/architecture/data-flow.md"
-        }
-      ]
+      "title": "Policy Documentation",
+      "file": "policies/index.html"
     },
     {
-      "title": "Policies",
-      "children": [
-        {
-          "title": "Overview",
-          "file": "docs/policies/index.md"
-        },
-        {
-          "title": "DNC Policy",
-          "file": "docs/policies/dnc.md"
-        },
-        {
-          "title": "Authorization Policy",
-          "file": "docs/policies/authz.md"
-        },
-        {
-          "title": "Testing",
-          "file": "docs/policies/testing.md"
-        }
-      ]
+      "title": "SAM Application",
+      "file": "sam-app/index.html"
     },
     {
-      "title": "Services",
-      "children": [
-        {
-          "title": "SAM Application",
-          "file": "docs/services/sam-app.md"
-        },
-        {
-          "title": "Mock Services",
-          "file": "docs/services/mock-services.md"
-        },
-        {
-          "title": "PAP Dashboard",
-          "file": "docs/services/pap-dashboard.md"
-        }
-      ]
+      "title": "Mock Services",
+      "file": "mock-services/index.html"
     },
     {
-      "title": "Development",
-      "children": [
-        {
-          "title": "Setup",
-          "file": "docs/development/setup.md"
-        },
-        {
-          "title": "Testing",
-          "file": "docs/development/testing.md"
-        },
-        {
-          "title": "Deployment",
-          "file": "docs/development/deployment.md"
-        }
-      ]
+      "title": "PAP Dashboard",
+      "file": "pap-dashboard/index.html"
+    },
+    {
+      "title": "Installation Guide",
+      "file": "installation/index.html"
     },
     {
       "title": "API Reference",
       "children": [
         {
           "title": "Policies API",
-          "file": "docs/api/policies.md"
+          "file": "api/policies/index.html"
         },
         {
           "title": "Preferences API",
-          "file": "docs/api/preferences.md"
-        },
-        {
-          "title": "OPA Endpoints",
-          "file": "docs/api/opa.md"
-        },
-        {
-          "title": "PAP API",
-          "file": "docs/api/pap.md"
+          "file": "api/preferences/index.html"
         }
       ]
     }

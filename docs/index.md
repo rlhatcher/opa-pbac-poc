@@ -2,6 +2,14 @@
 
 A comprehensive proof-of-concept demonstrating Policy-Based Access Control (PBAC) using Open Policy Agent (OPA) with AWS API Gateway custom authorizers and a complete monitoring dashboard.
 
+## 📚 Documentation Index
+
+- **[Policy Documentation](policies.md)** - DNC and authorization policy details
+- **[SAM Application](sam-app.md)** - Lambda authorizer, backend services, and testing
+- **[Mock Services](mock-services.md)** - Expert preferences API and Swagger UI
+- **[PAP Dashboard](pap-dashboard.md)** - Policy administration interface and monitoring
+- **[Installation Guide](installation.md)** - Dependency installation script
+
 ## Overview
 
 This POC demonstrates a complete PBAC architecture with two distinct policy systems and comprehensive monitoring capabilities:

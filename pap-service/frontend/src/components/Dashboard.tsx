@@ -1,12 +1,5 @@
 import { useState, useEffect } from 'react'
-import {
-  Zap,
-  Shield,
-  Database,
-  Terminal,
-  FileText,
-  Settings
-} from 'lucide-react'
+import { Zap, Shield, Database, Terminal, FileText } from 'lucide-react'
 
 // Layout Components
 import { DashboardLayout } from './layout/DashboardLayout'
@@ -20,8 +13,7 @@ import { PolicyTestingPage } from './features/policy-testing/PolicyTestingPage'
 import { DecisionsPage } from './features/decisions/DecisionsPage'
 import { DataManagementPage } from './features/data-management/DataManagementPage'
 import { LogsPage } from './features/logs/LogsPage'
-import { ReadmePage } from './features/readme/ReadmePage'
-import { DocumentationPage } from './features/documentation/DocumentationPage'
+import { DocumentationViewer } from './features/documentation/DocumentationViewer'
 
 // Custom Hooks
 import { useSocketConnection } from '../hooks/useSocketConnection'
@@ -36,7 +28,7 @@ const sidebarItems = [
   { id: 'data', label: 'Data Management', icon: Database },
   { id: 'logs', label: 'Logs', icon: Terminal },
   { id: 'documentation', label: 'Documentation', icon: FileText },
-  { id: 'readme', label: 'README', icon: Settings }
+  { id: 'api-docs', label: 'API Documentation', icon: FileText }
 ]
 
 export function Dashboard() {
@@ -47,13 +39,6 @@ export function Dashboard() {
   // Local state
   const [currentPage, setCurrentPage] = useState('testing')
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [openApiSpecs, setOpenApiSpecs] = useState<{
-    preferences: object | null
-    policies: string | object | null
-  }>({
-    preferences: null,
-    policies: null
-  })
 
   // Custom hooks
   const { serviceStatus, checkServiceStatus } = useServiceStatus(papServiceUrl)
@@ -94,32 +79,6 @@ export function Dashboard() {
       await fetchDashboardData()
     }
   })
-
-  // Load OpenAPI specifications
-  useEffect(() => {
-    const loadOpenApiSpecs = async () => {
-      try {
-        const [preferencesRes, policiesRes] = await Promise.all([
-          fetch(`${papServiceUrl}/api/openapi/preferences`),
-          fetch('/policies-api.yaml')
-        ])
-
-        if (preferencesRes.ok) {
-          const preferencesSpec = await preferencesRes.json()
-          setOpenApiSpecs((prev) => ({ ...prev, preferences: preferencesSpec }))
-        }
-
-        if (policiesRes.ok) {
-          const policiesSpec = await policiesRes.text()
-          setOpenApiSpecs((prev) => ({ ...prev, policies: policiesSpec }))
-        }
-      } catch (error) {
-        console.error('Failed to load OpenAPI specs:', error)
-      }
-    }
-
-    loadOpenApiSpecs()
-  }, [papServiceUrl])
 
   // Health check on mount and interval
   useEffect(() => {
@@ -198,11 +157,7 @@ export function Dashboard() {
             />
           )}
 
-          {currentPage === 'documentation' && (
-            <DocumentationPage openApiSpecs={openApiSpecs} />
-          )}
-
-          {currentPage === 'readme' && <ReadmePage />}
+          {currentPage === 'documentation' && <DocumentationViewer />}
         </PageContainer>
       </div>
     </DashboardLayout>

@@ -1,7 +1,8 @@
 site_name: OPA PBAC Proof of Concept
 site_description: Policy-Based Access Control using Open Policy Agent with AWS API Gateway
 site_author: OPA PBAC POC Team
-site_url: https://your-domain.github.io/opa-pbac-poc
+# site_url commented out for iframe compatibility - enables relative links
+# site_url: https://your-domain.github.io/opa-pbac-poc
 
 # Repository
 repo_name: opa-pbac-poc
@@ -9,8 +10,10 @@ repo_url: https://github.com/your-org/opa-pbac-poc
 edit_uri: edit/main/docs/
 
 # Configuration
+use_directory_urls: false # Generate .html files for iframe compatibility
 theme:
   name: material
+  custom_dir: overrides
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -31,8 +34,6 @@ theme:
     - navigation.sections
     - navigation.expand
     - navigation.top
-    - search.highlight
-    - search.share
     - content.code.copy
 
 # Extensions
@@ -53,32 +54,17 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
-  - Architecture:
-      - Overview: architecture/overview.md
-      - XACML Components: architecture/xacml.md
-      - Data Flow: architecture/data-flow.md
-  - Policies:
-      - Overview: policies/index.md
-      - DNC Policy: policies/dnc.md
-      - Authorization Policy: policies/authz.md
-      - Testing: policies/testing.md
-  - Services:
-      - SAM Application: services/sam-app.md
-      - Mock Services: services/mock-services.md
-      - PAP Dashboard: services/pap-dashboard.md
-  - Development:
-      - Setup: development/setup.md
-      - Testing: development/testing.md
-      - Deployment: development/deployment.md
+  - Policy Documentation: policies.md
+  - SAM Application: sam-app.md
+  - Mock Services: mock-services.md
+  - PAP Dashboard: pap-dashboard.md
+  - Installation Guide: installation.md
   - API Reference:
       - Policies API: api/policies.md
       - Preferences API: api/preferences.md
-      - OPA Endpoints: api/opa.md
-      - PAP API: api/pap.md
 
 # Plugins
 plugins:
-  - search
   - mermaid2
   - swagger-ui-tag
 

@@ -4,11 +4,11 @@ A comprehensive proof-of-concept demonstrating Policy-Based Access Control (PBAC
 
 ## 📚 Documentation Index
 
-- **[Policy Documentation](policies/README.md)** - DNC and authorization policy details
-- **[SAM Application](sam-app/README.md)** - Lambda authorizer, backend services, and testing
-- **[Mock Services](mock-services/README.md)** - Expert preferences API and Swagger UI
-- **[PAP Dashboard](pap-service/README.md)** - Policy administration interface and monitoring
-- **[Installation Guide](scripts/install.sh)** - Dependency installation script
+- **[Policy Documentation](docs/policies.md)** - DNC and authorization policy details
+- **[SAM Application](docs/sam-app.md)** - Lambda authorizer, backend services, and testing
+- **[Mock Services](docs/mock-services.md)** - Expert preferences API and Swagger UI
+- **[PAP Dashboard](docs/pap-dashboard.md)** - Policy administration interface and monitoring
+- **[Installation Guide](docs/installation.md)** - Dependency installation script
 
 ## Overview
 
@@ -375,7 +375,7 @@ The POC uses:
 
 For detailed documentation, see:
 
-- [Policy Documentation](policies/README.md) - DNC and authorization policy details
-- [Preferences Service API](mock-services/README.md) - Mock service documentation
-- [SAM Lambda Setup](sam-app/README.md) - Lambda authorizer and testing
-- [PAP Dashboard](pap-service/README.md) - Policy administration interface
+- [Policy Documentation](docs/policies.md) - DNC and authorization policy details
+- [Preferences Service API](docs/mock-services.md) - Mock service documentation
+- [SAM Lambda Setup](docs/sam-app.md) - Lambda authorizer and testing
+- [PAP Dashboard](docs/pap-dashboard.md) - Policy administration interface

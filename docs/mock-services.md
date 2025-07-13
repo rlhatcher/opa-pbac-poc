@@ -4,10 +4,10 @@ A static mock service for testing the DNC (Do Not Contact) policy with built-in 
 
 ## 📚 Navigation
 
-- **[← Main README](../README.md)** - Project overview and quick start
-- **[Policy Documentation](../policies/README.md)** - DNC and authorization policies
-- **[SAM Application](../sam-app/README.md)** - Lambda authorizer and testing
-- **[PAP Dashboard](../pap-service/README.md)** - Policy administration interface
+- **[← Home](index.md)** - Project overview and quick start
+- **[Policy Documentation](policies.md)** - DNC and authorization policies
+- **[SAM Application](sam-app.md)** - Lambda authorizer and testing
+- **[PAP Dashboard](pap-dashboard.md)** - Policy administration interface
 
 ## Overview
 

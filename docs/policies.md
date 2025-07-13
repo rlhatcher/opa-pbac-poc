@@ -4,10 +4,10 @@ This directory contains Open Policy Agent (OPA) policies for the PBAC proof-of-c
 
 ## 📚 Navigation
 
-- **[← Main README](../README.md)** - Project overview and quick start
-- **[SAM Application](../sam-app/README.md)** - Lambda authorizer and testing
-- **[Mock Services](../mock-services/README.md)** - Expert preferences API
-- **[PAP Dashboard](../pap-service/README.md)** - Policy administration interface
+- **[← Home](index.md)** - Project overview and quick start
+- **[SAM Application](sam-app.md)** - Lambda authorizer and testing
+- **[Mock Services](mock-services.md)** - Expert preferences API
+- **[PAP Dashboard](pap-dashboard.md)** - Policy administration interface
 
 ## Policy Overview
 

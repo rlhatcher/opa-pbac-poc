@@ -1,0 +1,24 @@
+/* Hide search functionality completely */
+.md-search,
+.md-search__form,
+.md-search__input,
+.md-search__output,
+.md-search__scrollwrap,
+.md-search-result,
+.md-search__icon,
+.md-search__overlay,
+.md-search__inner,
+.md-search__options,
+.md-header__option[for="__search"] {
+  display: none !important;
+}
+
+/* Hide the search button in header */
+.md-header__button.md-icon[for="__search"] {
+  display: none !important;
+}
+
+/* Adjust header layout without search */
+.md-header__inner {
+  justify-content: space-between;
+}

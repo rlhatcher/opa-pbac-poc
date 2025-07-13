@@ -4,10 +4,10 @@ A comprehensive dashboard for managing and monitoring the OPA PBAC (Policy-Based
 
 ## 📚 Navigation
 
-- **[← Main README](../README.md)** - Project overview and quick start
-- **[Policy Documentation](../policies/README.md)** - DNC and authorization policies
-- **[SAM Application](../sam-app/README.md)** - Lambda authorizer and testing
-- **[Mock Services](../mock-services/README.md)** - Expert preferences API
+- **[← Home](index.md)** - Project overview and quick start
+- **[Policy Documentation](policies.md)** - DNC and authorization policies
+- **[SAM Application](sam-app.md)** - Lambda authorizer and testing
+- **[Mock Services](mock-services.md)** - Expert preferences API
 
 ## Overview
 

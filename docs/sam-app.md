@@ -4,10 +4,10 @@ This directory contains the AWS SAM application for the OPA-based Lambda authori
 
 ## 📚 Navigation
 
-- **[← Main README](../README.md)** - Project overview and quick start
-- **[Policy Documentation](../policies/README.md)** - DNC and authorization policies
-- **[Mock Services](../mock-services/README.md)** - Expert preferences API
-- **[PAP Dashboard](../pap-service/README.md)** - Policy administration interface
+- **[← Home](index.md)** - Project overview and quick start
+- **[Policy Documentation](policies.md)** - DNC and authorization policies
+- **[Mock Services](mock-services.md)** - Expert preferences API
+- **[PAP Dashboard](pap-dashboard.md)** - Policy administration interface
 
 ## Overview
 
