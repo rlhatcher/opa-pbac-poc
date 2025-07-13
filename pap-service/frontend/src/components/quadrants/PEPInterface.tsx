@@ -68,7 +68,10 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
     try {
       // Call PAP service DNC endpoint directly (API Gateway has issues)
-      const response = await fetch('http://localhost:3004/api/pep/test-dnc', {
+      const baseUrl =
+        import.meta.env.VITE_PAP_SERVICE_URL ||
+        window.location.origin.replace(':5173', ':3004')
+      const response = await fetch(`${baseUrl}/api/pep/test-dnc`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -135,7 +138,11 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
         type: 'dnc-policy-error'
       }
       setLatestResponse(errorResult)
-      setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
+
+      // Add to history if not already added via WebSocket
+      if (!socket) {
+        setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
+      }
     } finally {
       setIsLoading(false)
     }
@@ -162,7 +169,10 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
 
     try {
       // Call PAP service authorization endpoint directly (API Gateway has issues)
-      const response = await fetch('http://localhost:3004/api/pep/test-authz', {
+      const baseUrl =
+        import.meta.env.VITE_PAP_SERVICE_URL ||
+        window.location.origin.replace(':5173', ':3004')
+      const response = await fetch(`${baseUrl}/api/pep/test-authz`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -199,7 +209,11 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
         type: 'authz-policy-error'
       }
       setLatestResponse(errorResult)
-      setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
+
+      // Add to history if not already added via WebSocket
+      if (!socket) {
+        setRequestHistory((prev) => [errorResult, ...prev.slice(0, 9)])
+      }
     } finally {
       setIsLoading(false)
     }

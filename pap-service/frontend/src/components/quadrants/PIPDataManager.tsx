@@ -27,6 +27,10 @@ interface PIPDataManagerProps {
 }
 
 export function PIPDataManager({ data, socket }: PIPDataManagerProps) {
+  // Get PAP service URL from environment variables, fallback to localhost for development
+  const papServiceUrl =
+    import.meta.env.VITE_PAP_SERVICE_URL || 'http://localhost:3004'
+
   const [editingData, setEditingData] = useState<PIPData>({
     companies: {},
     countries: {},
@@ -110,7 +114,7 @@ export function PIPDataManager({ data, socket }: PIPDataManagerProps) {
   const saveCountries = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('http://localhost:3004/api/pip/countries', {
+      const response = await fetch(`${papServiceUrl}/api/pip/countries`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingData.countries)

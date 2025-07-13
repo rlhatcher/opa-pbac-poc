@@ -119,31 +119,11 @@ app.post('/api/pep/test-dnc', async (req, res) => {
       decision: canContact ? 'ALLOW' : 'DENY'
     }
 
-    // Create PDP log entry for metrics tracking
-    const pdpLogEntry = {
-      timestamp: new Date().toISOString(),
-      decision_id: `pep-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`,
-      policy: 'policies.dnc',
-      input: { expert, project },
-      result: canContact,
-      full_result: opaResult,
-      decision: canContact ? 'ALLOW' : 'DENY',
-      level: 'info',
-      message: `DNC Policy evaluation via PEP interface`
-    }
-
-    // Add to PDP logs for metrics
-    dashboardData.pdpLogs.unshift(pdpLogEntry)
-    if (dashboardData.pdpLogs.length > 100) dashboardData.pdpLogs.pop()
-
-    // Store and broadcast
+    // Store and broadcast (OPA decision logs will be captured automatically)
     dashboardData.pepRequests.unshift(result)
     if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
 
     io.emit('pep-request', result)
-    io.emit('pdp-log', pdpLogEntry)
 
     res.json(result)
   } catch (error) {
@@ -180,31 +160,11 @@ app.post('/api/pep/test-authz', async (req, res) => {
       type: 'authz-policy'
     }
 
-    // Create PDP log entry for metrics tracking
-    const authResult = opaResponse.data.result
-    const pdpLogEntry = {
-      timestamp: new Date().toISOString(),
-      decision_id: `pep-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`,
-      policy: 'policies.authz',
-      input: { method, path, token },
-      result: authResult,
-      full_result: opaResponse.data,
-      decision: authResult ? 'ALLOW' : 'DENY',
-      level: 'info',
-      message: `Authorization Policy evaluation via PEP interface`
-    }
-
-    // Add to PDP logs for metrics
-    dashboardData.pdpLogs.unshift(pdpLogEntry)
-    if (dashboardData.pdpLogs.length > 100) dashboardData.pdpLogs.pop()
-
+    // Store and broadcast (OPA decision logs will be captured automatically)
     dashboardData.pepRequests.unshift(result)
     if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
 
     io.emit('pep-request', result)
-    io.emit('pdp-log', pdpLogEntry)
 
     res.json(result)
   } catch (error) {
@@ -708,105 +668,66 @@ function startOpaLogMonitoring() {
 
   try {
     // Use docker logs to follow OPA container logs
+    const OPA_CONTAINER_NAME =
+      process.env.OPA_CONTAINER_NAME || 'opa-pbac-poc-opa-1'
+
     const dockerLogs = spawn('docker', [
       'logs',
       '--follow',
       '--tail',
       '0', // Only new logs
-      'opa-pbac-poc-opa-1'
+      OPA_CONTAINER_NAME
     ])
 
-    dockerLogs.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n')
+    // Helper function to process OPA log lines
+    function processOpaLogLine(line) {
+      if (line.trim()) {
+        try {
+          const logEntry = JSON.parse(line)
 
-      lines.forEach((line) => {
-        if (line.trim()) {
-          try {
-            const logEntry = JSON.parse(line)
-
-            // Check if this is a decision log entry
-            if (
-              logEntry.type === 'openpolicyagent.org/decision_logs' &&
-              logEntry.decision_id
-            ) {
-              // Transform OPA decision log to our format
-              const pdpLog = {
-                timestamp: logEntry.timestamp || new Date().toISOString(),
-                decision_id: logEntry.decision_id,
-                policy: logEntry.path || 'unknown',
-                input: logEntry.input,
-                result: logEntry.result,
-                decision: logEntry.result ? 'ALLOW' : 'DENY',
-                level: 'info',
-                message: `Policy evaluation: ${logEntry.path || 'unknown'}`,
-                metrics: logEntry.metrics
-              }
-
-              // Add to PDP logs
-              dashboardData.pdpLogs.unshift(pdpLog)
-              if (dashboardData.pdpLogs.length > 100)
-                dashboardData.pdpLogs.pop()
-
-              // Broadcast to connected clients
-              io.emit('pdp-log', pdpLog)
-
-              console.log(
-                '📊 OPA Decision Log captured:',
-                JSON.stringify(pdpLog, null, 2)
-              )
+          // Check if this is a decision log entry
+          if (
+            logEntry.type === 'openpolicyagent.org/decision_logs' &&
+            logEntry.decision_id
+          ) {
+            // Transform OPA decision log to our format
+            const pdpLog = {
+              timestamp: logEntry.timestamp || new Date().toISOString(),
+              decision_id: logEntry.decision_id,
+              policy: logEntry.path || 'unknown',
+              input: logEntry.input,
+              result: logEntry.result,
+              decision: logEntry.result ? 'ALLOW' : 'DENY',
+              level: 'info',
+              message: `Policy evaluation: ${logEntry.path || 'unknown'}`,
+              metrics: logEntry.metrics
             }
-          } catch (error) {
-            // Not a JSON log entry, ignore
+
+            // Add to PDP logs
+            dashboardData.pdpLogs.unshift(pdpLog)
+            if (dashboardData.pdpLogs.length > 100) dashboardData.pdpLogs.pop()
+
+            // Broadcast to connected clients
+            io.emit('pdp-log', pdpLog)
+
+            console.log(
+              '📊 OPA Decision Log captured:',
+              JSON.stringify(pdpLog, null, 2)
+            )
           }
+        } catch (error) {
+          // Not a JSON log entry, ignore
         }
-      })
+      }
+    }
+
+    dockerLogs.stdout.on('data', (data) => {
+      data.toString().split('\n').forEach(processOpaLogLine)
     })
 
     dockerLogs.stderr.on('data', (data) => {
       // OPA logs come through stderr, process them the same way as stdout
-      const lines = data.toString().split('\n')
-
-      lines.forEach((line) => {
-        if (line.trim()) {
-          try {
-            const logEntry = JSON.parse(line)
-
-            // Check if this is a decision log entry
-            if (
-              logEntry.type === 'openpolicyagent.org/decision_logs' &&
-              logEntry.decision_id
-            ) {
-              // Transform OPA decision log to our format
-              const pdpLog = {
-                timestamp: logEntry.timestamp || new Date().toISOString(),
-                decision_id: logEntry.decision_id,
-                policy: logEntry.path || 'unknown',
-                input: logEntry.input,
-                result: logEntry.result,
-                decision: logEntry.result ? 'ALLOW' : 'DENY',
-                level: 'info',
-                message: `Policy evaluation: ${logEntry.path || 'unknown'}`,
-                metrics: logEntry.metrics
-              }
-
-              // Add to PDP logs
-              dashboardData.pdpLogs.unshift(pdpLog)
-              if (dashboardData.pdpLogs.length > 100)
-                dashboardData.pdpLogs.pop()
-
-              // Broadcast to connected clients
-              io.emit('pdp-log', pdpLog)
-
-              console.log(
-                '📊 OPA Decision Log captured:',
-                JSON.stringify(pdpLog, null, 2)
-              )
-            }
-          } catch (error) {
-            // Not a JSON log entry, ignore
-          }
-        }
-      })
+      data.toString().split('\n').forEach(processOpaLogLine)
     })
 
     dockerLogs.on('error', (error) => {

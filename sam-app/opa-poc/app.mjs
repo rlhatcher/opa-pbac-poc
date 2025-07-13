@@ -4,6 +4,7 @@ import { buildPolicy } from './policyBuilder.js'
 
 const OPA_ENDPOINT =
   process.env.OPA_ENDPOINT || 'http://host.docker.internal:8181'
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 const AUTHZ_URL = `${OPA_ENDPOINT}/v1/data/policies/authz/allow`
 
 // PAP logging disabled for local development
@@ -30,26 +31,11 @@ export const lambdaHandler = async (event) => {
   }
 
   try {
-    const decoded = jwt.decode(token, { complete: true })
+    // Verify JWT token signature and decode payload
+    const decoded = jwt.verify(token, JWT_SECRET, { complete: true })
 
     if (!decoded || !decoded.payload) {
-      console.log('❌ Invalid JWT token structure')
-
-      // Log invalid token to PAP service - temporarily disabled
-      // logToPAPService(
-      //   'authorizer',
-      //   'policies/authz',
-      //   { token: 'invalid' },
-      //   false,
-      //   {
-      //     methodArn: event.methodArn,
-      //     path: event.path,
-      //     method: event.httpMethod,
-      //     decision: 'Deny',
-      //     errorType: 'invalid_token'
-      //   }
-      // ).catch((err) => console.log('⚠️ PAP logging failed:', err.message))
-
+      console.log('❌ Invalid JWT token structure after verification')
       return buildPolicy('Deny', event.methodArn, 'invalid-token')
     }
 
@@ -64,13 +50,7 @@ export const lambdaHandler = async (event) => {
     const opaRes = await fetch(AUTHZ_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        input: {
-          method: event.httpMethod,
-          path: event.path.replace(/^\//, '').split('/'),
-          token: { payload: decoded.payload }
-        }
-      })
+      body: JSON.stringify({ input })
     })
 
     if (!opaRes.ok) {
@@ -86,17 +66,21 @@ export const lambdaHandler = async (event) => {
       `📋 OPA decision: ${policyEffect} for user ${decoded.payload.sub}`
     )
 
-    // Log authorization decision to PAP service (async, don't wait) - temporarily disabled
-    // logToPAPService('authorizer', 'policies/authz', input, result, {
-    //   methodArn: event.methodArn,
-    //   path: event.path,
-    //   method: event.httpMethod,
-    //   decision: policyEffect
-    // }).catch((err) => console.log('⚠️ PAP logging failed:', err.message))
-
     return buildPolicy(policyEffect, event.methodArn, decoded.payload.sub)
   } catch (error) {
-    console.log('❌ Authorization error:', error.message)
+    // Handle JWT verification errors specifically
+    if (error.name === 'JsonWebTokenError') {
+      console.log('❌ JWT signature verification failed:', error.message)
+      return buildPolicy('Deny', event.methodArn, 'invalid-signature')
+    } else if (error.name === 'TokenExpiredError') {
+      console.log('❌ JWT token has expired:', error.message)
+      return buildPolicy('Deny', event.methodArn, 'expired-token')
+    } else if (error.name === 'NotBeforeError') {
+      console.log('❌ JWT token not active yet:', error.message)
+      return buildPolicy('Deny', event.methodArn, 'token-not-active')
+    } else {
+      console.log('❌ Authorization error:', error.message)
+    }
 
     // Log authorization error to PAP service - temporarily disabled
     // logToPAPService(

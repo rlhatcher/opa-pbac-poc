@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import JsonView from '@uiw/react-json-view'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -25,6 +25,12 @@ export function JsonEditor({
   const [editMode, setEditMode] = useState(false)
   const [editedData, setEditedData] = useState(data)
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Update editedData when data prop changes
+  useEffect(() => {
+    setEditedData(data)
+    setHasChanges(false) // Reset changes flag when data updates
+  }, [data])
 
   const handleEdit = (edit: any) => {
     setEditedData(edit.updated_src)

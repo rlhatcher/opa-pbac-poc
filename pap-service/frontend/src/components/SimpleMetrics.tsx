@@ -17,12 +17,23 @@ interface MetricsData {
   uptime: number
 }
 
+interface ServiceStatus {
+  opa: boolean
+  preferences: boolean
+  sam: boolean
+}
+
 interface SimpleMetricsProps {
   metrics: MetricsData
   logs: any[]
+  serviceStatus: ServiceStatus
 }
 
-export function SimpleMetrics({ metrics, logs }: SimpleMetricsProps) {
+export function SimpleMetrics({
+  metrics,
+  logs,
+  serviceStatus
+}: SimpleMetricsProps) {
   const allowRate =
     metrics.totalRequests > 0
       ? ((metrics.allowedRequests / metrics.totalRequests) * 100).toFixed(1)
@@ -31,6 +42,15 @@ export function SimpleMetrics({ metrics, logs }: SimpleMetricsProps) {
   const recentLogs = logs.slice(-10)
   const recentAllowed = recentLogs.filter((log) => log.result === true).length
   const recentDenied = recentLogs.length - recentAllowed
+
+  // Helper function to get badge props based on service status
+  const getServiceBadge = (isOnline: boolean) => ({
+    variant: (isOnline ? 'default' : 'destructive') as
+      | 'default'
+      | 'destructive',
+    text: isOnline ? 'Online' : 'Offline',
+    className: isOnline ? 'bg-green-600 text-white hover:bg-green-700' : ''
+  })
 
   return (
     <div className='space-y-6'>
@@ -159,21 +179,38 @@ export function SimpleMetrics({ metrics, logs }: SimpleMetricsProps) {
                   <Shield className='h-4 w-4 text-primary' />
                   <span className='text-sm'>OPA (PDP)</span>
                 </div>
-                <Badge variant='default'>Online</Badge>
+                <Badge
+                  variant={getServiceBadge(serviceStatus.opa).variant}
+                  className={getServiceBadge(serviceStatus.opa).className}
+                >
+                  {getServiceBadge(serviceStatus.opa).text}
+                </Badge>
               </div>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center space-x-2'>
                   <Database className='h-4 w-4 text-primary' />
                   <span className='text-sm'>Preferences (PIP)</span>
                 </div>
-                <Badge variant='default'>Online</Badge>
+                <Badge
+                  variant={getServiceBadge(serviceStatus.preferences).variant}
+                  className={
+                    getServiceBadge(serviceStatus.preferences).className
+                  }
+                >
+                  {getServiceBadge(serviceStatus.preferences).text}
+                </Badge>
               </div>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center space-x-2'>
                   <Activity className='h-4 w-4 text-primary' />
                   <span className='text-sm'>SAM Local (PEP)</span>
                 </div>
-                <Badge variant='destructive'>Offline</Badge>
+                <Badge
+                  variant={getServiceBadge(serviceStatus.sam).variant}
+                  className={getServiceBadge(serviceStatus.sam).className}
+                >
+                  {getServiceBadge(serviceStatus.sam).text}
+                </Badge>
               </div>
             </div>
           </CardContent>

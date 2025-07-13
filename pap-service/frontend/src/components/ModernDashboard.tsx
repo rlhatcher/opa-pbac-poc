@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -47,6 +47,10 @@ interface DashboardData {
 }
 
 export function ModernDashboard() {
+  // Get PAP service URL from environment variables, fallback to localhost for development
+  const papServiceUrl =
+    import.meta.env.VITE_PAP_SERVICE_URL || 'http://localhost:3004'
+
   const [socket, setSocket] = useState<Socket | null>(null)
   const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
     opa: false,
@@ -65,7 +69,7 @@ export function ModernDashboard() {
   })
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [currentPage, setCurrentPage] = useState('testing')
   const [openApiSpecs, setOpenApiSpecs] = useState<{
     preferences: object | null
     policies: object | null
@@ -120,7 +124,6 @@ export function ModernDashboard() {
   })
 
   const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'testing', label: 'Policy Testing', icon: Zap },
     { id: 'decisions', label: 'Decisions', icon: Shield },
     { id: 'data', label: 'Data Management', icon: Database },
@@ -129,17 +132,100 @@ export function ModernDashboard() {
     { id: 'settings', label: 'Settings', icon: Settings }
   ]
 
+  // Health check function
+  const checkServiceStatus = useCallback(async () => {
+    const services = [
+      {
+        key: 'opa',
+        url: `${papServiceUrl}/api/health/opa`,
+        name: 'OPA (PDP)'
+      },
+      {
+        key: 'preferences',
+        url: `${papServiceUrl}/api/health/preferences`,
+        name: 'Preferences (PIP)'
+      },
+      {
+        key: 'sam',
+        url: `${papServiceUrl}/api/health/sam`,
+        name: 'SAM Local (PEP)'
+      }
+    ]
+
+    const statusChecks = await Promise.allSettled(
+      services.map(async (service) => {
+        try {
+          const response = await fetch(service.url, {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json'
+            }
+          })
+          const data = await response.json()
+          const isHealthy = response.ok && data.status === 'healthy'
+          return {
+            key: service.key,
+            status: isHealthy,
+            name: service.name,
+            data
+          }
+        } catch (error) {
+          console.warn(`Health check failed for ${service.name}:`, error)
+          return {
+            key: service.key,
+            status: false,
+            name: service.name,
+            error
+          }
+        }
+      })
+    )
+
+    setServiceStatus((prevStatus) => {
+      const newStatus = { ...prevStatus }
+      statusChecks.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          newStatus[result.value.key as keyof ServiceStatus] =
+            result.value.status
+          if (!result.value.status) {
+            console.warn(
+              `Service ${result.value.name} is unhealthy:`,
+              result.value.data || result.value.error
+            )
+          }
+        }
+      })
+      return newStatus
+    })
+  }, [papServiceUrl])
+
   // Socket connection and data fetching
   useEffect(() => {
-    const socketConnection = io('http://localhost:3004')
+    const socketConnection = io(papServiceUrl)
     setSocket(socketConnection)
 
     socketConnection.on('dashboard-update', (data) => {
       setDashboardData(data)
     })
 
+    // Listen for real-time PDP log updates
+    socketConnection.on('pdp-log', (logEntry) => {
+      setDashboardData((prev) => ({
+        ...prev,
+        pdpLogs: [logEntry, ...prev.pdpLogs.slice(0, 99)] // Keep last 100
+      }))
+    })
+
+    // Listen for real-time PEP request updates
+    socketConnection.on('pep-request', (requestEntry) => {
+      setDashboardData((prev) => ({
+        ...prev,
+        pepRequests: [requestEntry, ...prev.pepRequests.slice(0, 49)] // Keep last 50
+      }))
+    })
+
     // Initial data fetch from the correct backend port
-    fetch('http://localhost:3004/api/dashboard-data')
+    fetch(`${papServiceUrl}/api/dashboard-data`)
       .then((res) => res.json())
       .then((data) => setDashboardData(data))
       .catch((err) => console.error('Failed to fetch dashboard data:', err))
@@ -149,10 +235,13 @@ export function ModernDashboard() {
     const healthCheckInterval = setInterval(checkServiceStatus, 30000)
 
     return () => {
+      socketConnection.off('dashboard-update')
+      socketConnection.off('pdp-log')
+      socketConnection.off('pep-request')
       socketConnection.disconnect()
       clearInterval(healthCheckInterval)
     }
-  }, [])
+  }, [papServiceUrl])
 
   // Load OpenAPI specifications
   useEffect(() => {
@@ -220,87 +309,25 @@ export function ModernDashboard() {
 
     const refreshInterval = setInterval(async () => {
       try {
-        const response = await fetch('http://localhost:3004/api/dashboard-data')
+        const response = await fetch(`${papServiceUrl}/api/dashboard-data`)
         if (response.ok) {
           const data = await response.json()
-          // Only update if we have new data
-          if (
-            data.pdpLogs.length !== dashboardData.pdpLogs.length ||
-            data.appLogs.length !== dashboardData.appLogs.length
-          ) {
-            setDashboardData(data)
-          }
+          // Update data (socket events handle real-time updates, this is backup)
+          setDashboardData((prev) => {
+            // Only update if data has actually changed
+            if (JSON.stringify(prev) !== JSON.stringify(data)) {
+              return data
+            }
+            return prev
+          })
         }
       } catch (error) {
         console.warn('Auto-refresh failed:', error)
       }
-    }, 2000) // Poll every 2 seconds when auto-refresh is enabled
+    }, 2000) // Poll every 2 seconds as backup to socket events
 
     return () => clearInterval(refreshInterval)
-  }, [autoRefresh, dashboardData.pdpLogs.length, dashboardData.appLogs.length])
-
-  const checkServiceStatus = async () => {
-    const services = [
-      {
-        key: 'opa',
-        url: 'http://localhost:3004/api/health/opa',
-        name: 'OPA (PDP)'
-      },
-      {
-        key: 'preferences',
-        url: 'http://localhost:3004/api/health/preferences',
-        name: 'Preferences (PIP)'
-      },
-      {
-        key: 'sam',
-        url: 'http://localhost:3004/api/health/sam',
-        name: 'SAM Local (PEP)'
-      }
-    ]
-
-    const statusChecks = await Promise.allSettled(
-      services.map(async (service) => {
-        try {
-          const response = await fetch(service.url, {
-            method: 'GET',
-            headers: {
-              Accept: 'application/json'
-            }
-          })
-          const data = await response.json()
-          const isHealthy = response.ok && data.status === 'healthy'
-          return {
-            key: service.key,
-            status: isHealthy,
-            name: service.name,
-            data
-          }
-        } catch (error) {
-          console.warn(`Health check failed for ${service.name}:`, error)
-          return {
-            key: service.key,
-            status: false,
-            name: service.name,
-            error
-          }
-        }
-      })
-    )
-
-    const newStatus = { ...serviceStatus }
-    statusChecks.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        newStatus[result.value.key as keyof ServiceStatus] = result.value.status
-        if (!result.value.status) {
-          console.warn(
-            `Service ${result.value.name} is unhealthy:`,
-            result.value.data || result.value.error
-          )
-        }
-      }
-    })
-    setServiceStatus(newStatus)
-  }
+  }, [autoRefresh, papServiceUrl])
 
   const clearLogs = (logType: 'pepRequests' | 'pdpLogs' | 'appLogs') => {
     setDashboardData((prev) => ({
@@ -801,174 +828,6 @@ export function ModernDashboard() {
           </div>
 
           {/* Page-Specific Content */}
-          {currentPage === 'dashboard' && (
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* Service Activity Overview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center space-x-2'>
-                    <Shield className='h-5 w-5 text-primary' />
-                    <span>Service Activity</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='space-y-4'>
-                    <div className='flex justify-between items-center p-3 bg-primary/5 rounded-lg'>
-                      <div>
-                        <div className='font-medium text-sm'>PDP (OPA)</div>
-                        <div className='text-xs text-muted-foreground'>
-                          Policy Decisions
-                        </div>
-                      </div>
-                      <div className='text-right'>
-                        <div className='font-bold'>
-                          {serviceMetrics.pdp.count}
-                        </div>
-                        <Badge
-                          variant={
-                            serviceMetrics.pdp.status === 'active'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className='text-xs'
-                        >
-                          {serviceMetrics.pdp.status}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className='flex justify-between items-center p-3 bg-secondary/5 rounded-lg'>
-                      <div>
-                        <div className='font-medium text-sm'>
-                          PIP (Preferences)
-                        </div>
-                        <div className='text-xs text-muted-foreground'>
-                          Data Queries
-                        </div>
-                      </div>
-                      <div className='text-right'>
-                        <div className='font-bold'>
-                          {serviceMetrics.pip.count}
-                        </div>
-                        <Badge
-                          variant={
-                            serviceMetrics.pip.status === 'active'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className='text-xs'
-                        >
-                          {serviceMetrics.pip.status}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className='flex justify-between items-center p-3 bg-accent/5 rounded-lg'>
-                      <div>
-                        <div className='font-medium text-sm'>
-                          PEP (Application)
-                        </div>
-                        <div className='text-xs text-muted-foreground'>
-                          App Events
-                        </div>
-                      </div>
-                      <div className='text-right'>
-                        <div className='font-bold'>
-                          {serviceMetrics.pep.count}
-                        </div>
-                        <Badge
-                          variant={
-                            serviceMetrics.pep.status === 'active'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className='text-xs'
-                        >
-                          {serviceMetrics.pep.status}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className='flex justify-between items-center p-3 bg-muted/5 rounded-lg'>
-                      <div>
-                        <div className='font-medium text-sm'>Auth Lambda</div>
-                        <div className='text-xs text-muted-foreground'>
-                          Auth Requests
-                        </div>
-                      </div>
-                      <div className='text-right'>
-                        <div className='font-bold'>
-                          {serviceMetrics.auth.count}
-                        </div>
-                        <Badge
-                          variant={
-                            serviceMetrics.auth.status === 'active'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className='text-xs'
-                        >
-                          {serviceMetrics.auth.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* System Health */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center space-x-2'>
-                    <Database className='h-5 w-5 text-primary' />
-                    <span>System Health</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='space-y-3'>
-                    <div className='flex justify-between items-center'>
-                      <div className='flex items-center space-x-2'>
-                        <Shield className='h-4 w-4 text-primary' />
-                        <span className='text-sm'>OPA (PDP)</span>
-                      </div>
-                      <Badge
-                        variant={serviceStatus.opa ? 'default' : 'destructive'}
-                        className='text-xs'
-                      >
-                        {serviceStatus.opa ? 'Online' : 'Offline'}
-                      </Badge>
-                    </div>
-                    <div className='flex justify-between items-center'>
-                      <div className='flex items-center space-x-2'>
-                        <Database className='h-4 w-4 text-primary' />
-                        <span className='text-sm'>Preferences (PIP)</span>
-                      </div>
-                      <Badge
-                        variant={
-                          serviceStatus.preferences ? 'default' : 'destructive'
-                        }
-                        className='text-xs'
-                      >
-                        {serviceStatus.preferences ? 'Online' : 'Offline'}
-                      </Badge>
-                    </div>
-                    <div className='flex justify-between items-center'>
-                      <div className='flex items-center space-x-2'>
-                        <Terminal className='h-4 w-4 text-primary' />
-                        <span className='text-sm'>SAM Local (PEP)</span>
-                      </div>
-                      <Badge
-                        variant={serviceStatus.sam ? 'default' : 'destructive'}
-                        className='text-xs'
-                      >
-                        {serviceStatus.sam ? 'Online' : 'Offline'}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {currentPage === 'testing' && (
             <Card className='h-full'>

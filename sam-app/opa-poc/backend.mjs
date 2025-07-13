@@ -1,4 +1,8 @@
-// No imports needed - this is a simple logging function
+// Import required modules
+import jwt from 'jsonwebtoken'
+
+// Configuration
+const OPA_ENDPOINT = process.env.OPA_ENDPOINT || 'http://localhost:8181'
 
 export const lambdaHandler = async (event, context) => {
   console.log('🚀 Backend Lambda invoked - Authorization was successful!')

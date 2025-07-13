@@ -115,7 +115,7 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       data: { input },
       headers: {
         'Authorization':
-          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXUiXX0.test',
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
         'Content-Type': 'application/json'
       }
     })
@@ -141,7 +141,7 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       data: { input },
       headers: {
         'Authorization':
-          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXUiXX0.test',
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
         'Content-Type': 'application/json'
       }
     })
@@ -172,7 +172,7 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       data: { input },
       headers: {
         'Authorization':
-          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXUiXX0.test',
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
         'Content-Type': 'application/json'
       }
     })
@@ -207,7 +207,7 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       data: { input },
       headers: {
         'Authorization':
-          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXUiXX0.test',
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
         'Content-Type': 'application/json'
       }
     })
@@ -240,7 +240,7 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       data: { input },
       headers: {
         'Authorization':
-          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXUiXX0.test',
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
         'Content-Type': 'application/json'
       }
     })
