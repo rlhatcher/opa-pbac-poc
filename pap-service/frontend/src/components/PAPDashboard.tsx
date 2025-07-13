@@ -9,29 +9,27 @@ import { PEPInterface } from './quadrants/PEPInterface'
 import { PDPLogs } from './quadrants/PDPLogs'
 import { PIPDataManager } from './quadrants/PIPDataManager'
 import { AppLogs } from './quadrants/AppLogs'
+import { SimpleMetrics } from './SimpleMetrics'
 import {
   Shield,
   Activity,
   Database,
   Terminal,
-  CheckCircle,
-  XCircle,
-  Maximize2,
-  Minimize2,
-  Trash2,
-  Pause,
-  Play,
   BarChart3,
   Settings,
   Bell,
   Search,
-  Filter,
-  Download,
   RefreshCw,
-  Eye,
-  AlertTriangle,
-  Info,
-  Zap
+  Zap,
+  Home,
+  Users,
+  FileText,
+  Menu,
+  X,
+  Pause,
+  Play,
+  Trash2,
+  Maximize2
 } from 'lucide-react'
 
 interface ServiceStatus {
@@ -79,6 +77,15 @@ export function PAPDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [viewMode, setViewMode] = useState<'grid' | 'tabs' | 'focus'>('grid')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [metrics, setMetrics] = useState({
+    totalRequests: 0,
+    allowedRequests: 0,
+    deniedRequests: 0,
+    avgResponseTime: 0,
+    uptime: 100
+  })
 
   useEffect(() => {
     // Initialize WebSocket connection
@@ -138,6 +145,11 @@ export function PAPDashboard() {
       clearInterval(healthCheckInterval)
     }
   }, [])
+
+  // Update metrics when dashboard data changes
+  useEffect(() => {
+    updateMetrics()
+  }, [dashboardData.pdpLogs, serviceStatus])
 
   const checkServiceStatus = async () => {
     const services = [
@@ -207,134 +219,306 @@ export function PAPDashboard() {
     setAutoRefresh((prev) => !prev)
   }
 
-  return (
-    <div className='min-h-screen bg-background'>
-      {/* Modern Header */}
-      <header className='border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50'>
-        <div className='container mx-auto px-6 py-4'>
-          <div className='flex items-center justify-between'>
-            {/* Brand & Title */}
-            <div className='flex items-center space-x-4'>
-              <div className='flex items-center space-x-3'>
-                <div className='p-2 bg-primary/10 rounded-lg'>
-                  <Shield className='h-6 w-6 text-primary' />
-                </div>
-                <div>
-                  <h1 className='text-xl font-semibold'>PBAC Dashboard</h1>
-                  <p className='text-xs text-muted-foreground'>
-                    Policy Administration Point
-                  </p>
-                </div>
-              </div>
-            </div>
+  const updateMetrics = () => {
+    const totalRequests = dashboardData.pdpLogs.length
+    const allowedRequests = dashboardData.pdpLogs.filter(
+      (log) => log.result === true
+    ).length
+    const deniedRequests = totalRequests - allowedRequests
 
-            {/* System Status & Controls */}
-            <div className='flex items-center space-x-4'>
-              {/* System Health Overview */}
-              <div className='flex items-center space-x-2'>
-                <div className='flex items-center space-x-1'>
+    setMetrics({
+      totalRequests,
+      allowedRequests,
+      deniedRequests,
+      avgResponseTime: Math.floor(Math.random() * 50) + 10, // Simulated
+      uptime: (Object.values(serviceStatus).filter(Boolean).length / 3) * 100
+    })
+  }
+
+  const sidebarItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'testing', label: 'Policy Testing', icon: Zap },
+    { id: 'decisions', label: 'Decisions', icon: Shield },
+    { id: 'data', label: 'Data Management', icon: Database },
+    { id: 'logs', label: 'Logs', icon: Terminal },
+    { id: 'settings', label: 'Settings', icon: Settings }
+  ]
+
+  return (
+    <div className='flex h-screen bg-background'>
+      {/* Sidebar */}
+      <div
+        className={`${
+          sidebarOpen ? 'w-64' : 'w-16'
+        } transition-all duration-300 border-r bg-card/50`}
+      >
+        <div className='flex h-full flex-col'>
+          {/* Logo */}
+          <div className='flex h-16 items-center border-b px-4'>
+            <div className='flex items-center space-x-2'>
+              <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary'>
+                <Shield className='h-4 w-4 text-primary-foreground' />
+              </div>
+              {sidebarOpen && (
+                <div className='flex flex-col'>
+                  <span className='text-sm font-semibold'>PBAC</span>
+                  <span className='text-xs text-muted-foreground'>
+                    Dashboard
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className='flex-1 space-y-1 p-2'>
+            {sidebarItems.map((item) => (
+              <Button
+                key={item.id}
+                variant={currentPage === item.id ? 'secondary' : 'ghost'}
+                className={`w-full justify-start ${!sidebarOpen && 'px-2'}`}
+                onClick={() => setCurrentPage(item.id)}
+              >
+                <item.icon className='h-4 w-4' />
+                {sidebarOpen && <span className='ml-2'>{item.label}</span>}
+              </Button>
+            ))}
+          </nav>
+
+          {/* Service Status */}
+          {sidebarOpen && (
+            <div className='border-t p-4'>
+              <div className='space-y-2'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-xs font-medium text-muted-foreground'>
+                    Services
+                  </span>
                   <div
                     className={`h-2 w-2 rounded-full ${
                       Object.values(serviceStatus).every(Boolean)
-                        ? 'bg-green-500'
+                        ? 'bg-primary'
                         : Object.values(serviceStatus).some(Boolean)
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
+                        ? 'bg-muted-foreground'
+                        : 'bg-destructive'
                     }`}
                   />
-                  <span className='text-xs text-muted-foreground'>
-                    {Object.values(serviceStatus).filter(Boolean).length}/3
-                    Services
-                  </span>
+                </div>
+                <div className='space-y-1'>
+                  <div className='flex items-center justify-between text-xs'>
+                    <span>OPA (PDP)</span>
+                    <Badge
+                      variant={serviceStatus.opa ? 'default' : 'destructive'}
+                      className='h-4 text-xs'
+                    >
+                      {serviceStatus.opa ? 'Online' : 'Offline'}
+                    </Badge>
+                  </div>
+                  <div className='flex items-center justify-between text-xs'>
+                    <span>Preferences (PIP)</span>
+                    <Badge
+                      variant={
+                        serviceStatus.preferences ? 'default' : 'destructive'
+                      }
+                      className='h-4 text-xs'
+                    >
+                      {serviceStatus.preferences ? 'Online' : 'Offline'}
+                    </Badge>
+                  </div>
+                  <div className='flex items-center justify-between text-xs'>
+                    <span>SAM Local (PEP)</span>
+                    <Badge
+                      variant={serviceStatus.sam ? 'default' : 'destructive'}
+                      className='h-4 text-xs'
+                    >
+                      {serviceStatus.sam ? 'Online' : 'Offline'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-
-              {/* Service Status Cards */}
-              <div className='flex space-x-1'>
-                <Badge
-                  variant={serviceStatus.opa ? 'default' : 'destructive'}
-                  className='cursor-pointer hover:opacity-80 transition-opacity'
-                  onClick={() => window.open('http://localhost:8181', '_blank')}
-                >
-                  <Shield className='h-3 w-3 mr-1' />
-                  PDP
-                </Badge>
-
-                <Badge
-                  variant={
-                    serviceStatus.preferences ? 'default' : 'destructive'
-                  }
-                  className='cursor-pointer hover:opacity-80 transition-opacity'
-                  onClick={() => window.open('http://localhost:3002', '_blank')}
-                >
-                  <Database className='h-3 w-3 mr-1' />
-                  PIP
-                </Badge>
-
-                <Badge
-                  variant={serviceStatus.sam ? 'default' : 'destructive'}
-                  className='cursor-pointer hover:opacity-80 transition-opacity'
-                  onClick={() => window.open('http://localhost:3000', '_blank')}
-                >
-                  <Activity className='h-3 w-3 mr-1' />
-                  PEP
-                </Badge>
-              </div>
-
-              {/* Dashboard Controls */}
-              <div className='flex items-center space-x-1'>
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={() =>
-                    setViewMode(viewMode === 'grid' ? 'tabs' : 'grid')
-                  }
-                  title='Toggle view mode'
-                >
-                  <BarChart3 className='h-4 w-4' />
-                </Button>
-
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={checkServiceStatus}
-                  title='Refresh all services'
-                >
-                  <RefreshCw className='h-4 w-4' />
-                </Button>
-
-                <Button
-                  variant='ghost'
-                  size='sm'
-                  onClick={() => toggleAutoRefresh()}
-                  title={
-                    autoRefresh ? 'Pause auto-refresh' : 'Resume auto-refresh'
-                  }
-                >
-                  {autoRefresh ? (
-                    <Pause className='h-4 w-4' />
-                  ) : (
-                    <Play className='h-4 w-4' />
-                  )}
-                </Button>
-              </div>
             </div>
+          )}
+
+          {/* Toggle Button */}
+          <div className='border-t p-2'>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='w-full'
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? (
+                <X className='h-4 w-4' />
+              ) : (
+                <Menu className='h-4 w-4' />
+              )}
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Modern Dashboard Content */}
-      <main className='container mx-auto p-6 flex-1'>
-        {viewMode === 'grid' ? (
-          /* Grid Layout */
-          <div className='grid grid-cols-1 xl:grid-cols-2 gap-6 h-full max-h-[calc(100vh-200px)]'>
-            {/* Primary Action Panel - PEP Interface */}
+      {/* Main Content */}
+      <div className='flex-1 flex flex-col overflow-hidden'>
+        {/* Top Header */}
+        <header className='h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+          <div className='flex h-full items-center justify-between px-6'>
+            <div className='flex items-center space-x-4'>
+              <h1 className='text-xl font-semibold'>
+                {sidebarItems.find(item => item.id === currentPage)?.label || 'Dashboard'}
+              </h1>
+            </div>
+
+            <div className='flex items-center space-x-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={checkServiceStatus}
+              >
+                <RefreshCw className='h-4 w-4 mr-2' />
+                Refresh
+              </Button>
+
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => toggleAutoRefresh()}
+              >
+                {autoRefresh ? (
+                  <>
+                    <Pause className='h-4 w-4 mr-2' />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play className='h-4 w-4 mr-2' />
+                    Resume
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className='flex-1 overflow-auto p-6'>
+          {currentPage === 'dashboard' && (
+            <SimpleMetrics metrics={metrics} logs={dashboardData.pdpLogs} />
+          )}
+
+          {currentPage === 'testing' && (
+            <Card className='h-full'>
+              <CardContent className='h-full p-6'>
+                <PEPInterface socket={socket} />
+              </CardContent>
+            </Card>
+          )}
+
+          {currentPage === 'decisions' && (
+            <Card className='h-full'>
+              <CardHeader>
+                <div className='flex items-center justify-between'>
+                  <CardTitle>Policy Decision Logs</CardTitle>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => clearLogs('pdpLogs')}
+                  >
+                    <Trash2 className='h-4 w-4 mr-2' />
+                    Clear Logs
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className='h-full p-4'>
+                <ScrollArea className='h-full'>
+                  <PDPLogs logs={dashboardData.pdpLogs} />
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentPage === 'data' && (
+            <Card className='h-full'>
+              <CardContent className='h-full p-6'>
+                <PIPDataManager data={dashboardData.pipData} socket={socket} />
+              </CardContent>
+            </Card>
+          )}
+
+          {currentPage === 'logs' && (
+            <Card className='h-full'>
+              <CardHeader>
+                <div className='flex items-center justify-between'>
+                  <CardTitle>Application Logs</CardTitle>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => clearLogs('appLogs')}
+                  >
+                    <Trash2 className='h-4 w-4 mr-2' />
+                    Clear Logs
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className='h-full p-4'>
+                <ScrollArea className='h-full'>
+                  <AppLogs logs={dashboardData.appLogs} />
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {currentPage === 'settings' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='space-y-4'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <h3 className='text-sm font-medium'>Auto Refresh</h3>
+                      <p className='text-xs text-muted-foreground'>
+                        Automatically refresh service status and logs
+                      </p>
+                    </div>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => toggleAutoRefresh()}
+                    >
+                      {autoRefresh ? 'Enabled' : 'Disabled'}
+                    </Button>
+                  </div>
+
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <h3 className='text-sm font-medium'>Service Health Check</h3>
+                      <p className='text-xs text-muted-foreground'>
+                        Check the status of all PBAC services
+                      </p>
+                    </div>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={checkServiceStatus}
+                    >
+                      Check Now
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}
             <Card className='flex flex-col'>
               <CardHeader className='flex-shrink-0 pb-3'>
                 <div className='flex items-center justify-between'>
                   <CardTitle className='flex items-center space-x-2 text-lg'>
-                    <div className='p-1.5 bg-orange-100 rounded-md'>
-                      <Zap className='h-4 w-4 text-orange-600' />
+                    <div className='p-1.5 bg-muted rounded-md'>
+                      <Zap className='h-4 w-4 text-muted-foreground' />
                     </div>
                     <span>Policy Testing</span>
                   </CardTitle>
@@ -355,8 +539,8 @@ export function PAPDashboard() {
                 <CardHeader className='flex-shrink-0 pb-2'>
                   <div className='flex items-center justify-between'>
                     <CardTitle className='flex items-center space-x-2 text-base'>
-                      <div className='p-1.5 bg-blue-100 rounded-md'>
-                        <Shield className='h-4 w-4 text-blue-600' />
+                      <div className='p-1.5 bg-muted rounded-md'>
+                        <Shield className='h-4 w-4 text-muted-foreground' />
                       </div>
                       <span>Decision Logs</span>
                     </CardTitle>
@@ -392,8 +576,8 @@ export function PAPDashboard() {
                 <CardHeader className='flex-shrink-0 pb-2'>
                   <div className='flex items-center justify-between'>
                     <CardTitle className='flex items-center space-x-2 text-base'>
-                      <div className='p-1.5 bg-purple-100 rounded-md'>
-                        <Terminal className='h-4 w-4 text-purple-600' />
+                      <div className='p-1.5 bg-muted rounded-md'>
+                        <Terminal className='h-4 w-4 text-muted-foreground' />
                       </div>
                       <span>Application Logs</span>
                     </CardTitle>
@@ -430,8 +614,8 @@ export function PAPDashboard() {
               <CardHeader className='flex-shrink-0 pb-3'>
                 <div className='flex items-center justify-between'>
                   <CardTitle className='flex items-center space-x-2 text-lg'>
-                    <div className='p-1.5 bg-green-100 rounded-md'>
-                      <Database className='h-4 w-4 text-green-600' />
+                    <div className='p-1.5 bg-muted rounded-md'>
+                      <Database className='h-4 w-4 text-primary' />
                     </div>
                     <span>Policy Data Management</span>
                   </CardTitle>
@@ -452,7 +636,14 @@ export function PAPDashboard() {
             onValueChange={setActiveTab}
             className='h-full'
           >
-            <TabsList className='grid w-full grid-cols-4 mb-6'>
+            <TabsList className='grid w-full grid-cols-5 mb-6'>
+              <TabsTrigger
+                value='overview'
+                className='flex items-center space-x-2'
+              >
+                <BarChart3 className='h-4 w-4' />
+                <span>Overview</span>
+              </TabsTrigger>
               <TabsTrigger
                 value='testing'
                 className='flex items-center space-x-2'
@@ -476,6 +667,12 @@ export function PAPDashboard() {
                 <span>Logs</span>
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value='overview' className='h-[calc(100vh-280px)]'>
+              <div className='h-full overflow-auto'>
+                <SimpleMetrics metrics={metrics} logs={dashboardData.pdpLogs} />
+              </div>
+            </TabsContent>
 
             <TabsContent value='testing' className='h-[calc(100vh-280px)]'>
               <Card className='h-full'>

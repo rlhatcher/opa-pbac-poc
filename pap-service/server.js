@@ -77,26 +77,73 @@ app.post('/api/pep/test-dnc', async (req, res) => {
   try {
     const { expert, project } = req.body
 
-    // Call OPA DNC policy
+    // Call OPA DNC policy - get all decision data in one call
     const opaResponse = await axios.post(
-      `${config.opa.url}/v1/data/policies/dnc/can_contact`,
+      `${config.opa.url}/v1/data/policies/dnc`,
       {
         input: { expert, project }
       }
     )
 
+    const opaResult = opaResponse.data.result
+    const canContact = opaResult.can_contact
+
+    // Extract rejection reasons - could be a set (object) or array
+    let rejectionReasons = []
+    if (opaResult.rejection_reasons) {
+      if (Array.isArray(opaResult.rejection_reasons)) {
+        rejectionReasons = opaResult.rejection_reasons
+      } else if (typeof opaResult.rejection_reasons === 'object') {
+        // Convert Rego set to array
+        rejectionReasons = Object.keys(opaResult.rejection_reasons)
+      }
+    }
+
+    const decisionDetails = opaResult.decision_details || {}
+
+    // Format the response with proper decision details
     const result = {
       timestamp: new Date().toISOString(),
       request: { expert, project },
-      response: opaResponse.data,
-      type: 'dnc-policy'
+      response: {
+        result: {
+          can_contact: canContact,
+          dnc_reasons: rejectionReasons,
+          blocked_company: opaResult.blocked_company,
+          blocked_country: opaResult.blocked_country,
+          validation_errors: decisionDetails.validation_errors,
+          decision_details: decisionDetails
+        }
+      },
+      type: 'dnc-policy',
+      decision: canContact ? 'ALLOW' : 'DENY'
     }
+
+    // Create PDP log entry for metrics tracking
+    const pdpLogEntry = {
+      timestamp: new Date().toISOString(),
+      decision_id: `pep-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
+      policy: 'policies.dnc',
+      input: { expert, project },
+      result: canContact,
+      full_result: opaResult,
+      decision: canContact ? 'ALLOW' : 'DENY',
+      level: 'info',
+      message: `DNC Policy evaluation via PEP interface`
+    }
+
+    // Add to PDP logs for metrics
+    dashboardData.pdpLogs.unshift(pdpLogEntry)
+    if (dashboardData.pdpLogs.length > 100) dashboardData.pdpLogs.pop()
 
     // Store and broadcast
     dashboardData.pepRequests.unshift(result)
     if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
 
     io.emit('pep-request', result)
+    io.emit('pdp-log', pdpLogEntry)
 
     res.json(result)
   } catch (error) {
@@ -133,10 +180,31 @@ app.post('/api/pep/test-authz', async (req, res) => {
       type: 'authz-policy'
     }
 
+    // Create PDP log entry for metrics tracking
+    const authResult = opaResponse.data.result
+    const pdpLogEntry = {
+      timestamp: new Date().toISOString(),
+      decision_id: `pep-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
+      policy: 'policies.authz',
+      input: { method, path, token },
+      result: authResult,
+      full_result: opaResponse.data,
+      decision: authResult ? 'ALLOW' : 'DENY',
+      level: 'info',
+      message: `Authorization Policy evaluation via PEP interface`
+    }
+
+    // Add to PDP logs for metrics
+    dashboardData.pdpLogs.unshift(pdpLogEntry)
+    if (dashboardData.pdpLogs.length > 100) dashboardData.pdpLogs.pop()
+
     dashboardData.pepRequests.unshift(result)
     if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
 
     io.emit('pep-request', result)
+    io.emit('pdp-log', pdpLogEntry)
 
     res.json(result)
   } catch (error) {
@@ -151,6 +219,79 @@ app.post('/api/pep/test-authz', async (req, res) => {
     io.emit('pep-request', errorResult)
 
     res.status(500).json(errorResult)
+  }
+})
+
+// Logging endpoint - for Lambda functions to report decisions
+app.post('/api/log/decision', (req, res) => {
+  try {
+    const { policyPath, input, result, decisionId, source } = req.body
+
+    // Capture the decision log
+    captureOpaDecisionLog(policyPath, input, result, decisionId)
+
+    // Also log as PEP request for dashboard
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      request: input,
+      response: { result },
+      type: source || 'lambda-decision',
+      decision_id: decisionId
+    }
+
+    dashboardData.pepRequests.unshift(logEntry)
+    if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
+
+    io.emit('pep-request', logEntry)
+
+    res.json({ status: 'logged', timestamp: logEntry.timestamp })
+  } catch (error) {
+    console.error('❌ Decision logging error:', error)
+    res.status(500).json({ error: 'Logging failed', message: error.message })
+  }
+})
+
+// Gateway logging endpoint - for Lambda functions to report decisions
+app.post('/api/log/gateway-decision', (req, res) => {
+  try {
+    const {
+      source,
+      policyPath,
+      input,
+      result,
+      decisionId,
+      timestamp,
+      metadata
+    } = req.body
+
+    console.log(`📊 Gateway Decision Log from ${source}:`, {
+      policyPath,
+      decision: result === true ? 'ALLOW' : 'DENY',
+      decisionId
+    })
+
+    // Capture the decision log with proper decision mapping
+    captureOpaDecisionLog(policyPath, input, result, decisionId)
+
+    // Also log as PEP request for dashboard
+    const logEntry = {
+      timestamp: timestamp || new Date().toISOString(),
+      request: input,
+      response: { result },
+      type: `gateway-${source}`,
+      decision_id: decisionId,
+      metadata
+    }
+
+    dashboardData.pepRequests.unshift(logEntry)
+    if (dashboardData.pepRequests.length > 50) dashboardData.pepRequests.pop()
+
+    io.emit('pep-request', logEntry)
+
+    res.json({ status: 'logged', timestamp: logEntry.timestamp })
+  } catch (error) {
+    console.error('❌ Gateway decision logging error:', error)
+    res.status(500).json({ error: 'Logging failed', message: error.message })
   }
 })
 
@@ -220,6 +361,11 @@ app.get('/api/app/logs', (req, res) => {
   res.json(dashboardData.appLogs)
 })
 
+// Dashboard Data - All data for the dashboard
+app.get('/api/dashboard-data', (req, res) => {
+  res.json(dashboardData)
+})
+
 // Health check proxy endpoints (avoid CORS issues)
 app.get('/api/health/opa', async (req, res) => {
   try {
@@ -243,13 +389,11 @@ app.get('/api/health/preferences', async (req, res) => {
     res.json({ status: 'healthy', service: 'preferences', data: response.data })
   } catch (error) {
     console.warn('Preferences health check failed:', error.message)
-    res
-      .status(503)
-      .json({
-        status: 'unhealthy',
-        service: 'preferences',
-        error: error.message
-      })
+    res.status(503).json({
+      status: 'unhealthy',
+      service: 'preferences',
+      error: error.message
+    })
   }
 })
 
@@ -265,6 +409,191 @@ app.get('/api/health/sam', async (req, res) => {
       .status(503)
       .json({ status: 'unhealthy', service: 'sam', error: error.message })
   }
+})
+
+// API Documentation endpoint
+app.get('/api/docs', (req, res) => {
+  const swaggerHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DNC Policy API Documentation</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css" />
+  <style>
+    html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body { margin:0; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        url: '/api/openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.presets.standalone
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      });
+    };
+  </script>
+</body>
+</html>`
+  res.send(swaggerHtml)
+})
+
+// OpenAPI specification for DNC endpoints
+app.get('/api/openapi.json', (req, res) => {
+  const openApiSpec = {
+    openapi: '3.0.0',
+    info: {
+      title: 'DNC Policy API',
+      version: '1.0.0',
+      description: 'Do Not Contact Policy API for PBAC system'
+    },
+    servers: [
+      { url: 'http://localhost:3004', description: 'Local development server' }
+    ],
+    paths: {
+      '/api/pep/test-dnc': {
+        post: {
+          summary: 'Test DNC Policy',
+          description:
+            'Test the Do Not Contact policy for an expert and project combination',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    expert: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'expert_123' },
+                        country_id: { type: 'string', example: 'US' }
+                      },
+                      required: ['id', 'country_id']
+                    },
+                    project: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'proj_123' },
+                        type: { type: 'string', example: 'technology' }
+                      },
+                      required: ['id', 'type']
+                    }
+                  },
+                  required: ['expert', 'project']
+                }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: 'Policy decision result',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      timestamp: { type: 'string', format: 'date-time' },
+                      request: { type: 'object' },
+                      response: {
+                        type: 'object',
+                        properties: {
+                          result: {
+                            type: 'object',
+                            properties: {
+                              can_contact: { type: 'boolean' },
+                              dnc_reasons: {
+                                type: 'array',
+                                items: { type: 'string' }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      type: { type: 'string', example: 'dnc-policy' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      '/api/pep/test-authz': {
+        post: {
+          summary: 'Test Authorization Policy',
+          description: 'Test the authorization policy for a request',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    method: { type: 'string', example: 'GET' },
+                    path: { type: 'string', example: '/api/experts' },
+                    token: {
+                      type: 'object',
+                      properties: {
+                        payload: {
+                          type: 'object',
+                          properties: {
+                            sub: { type: 'string', example: 'alice' },
+                            roles: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['user']
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  required: ['method', 'path', 'token']
+                }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: 'Authorization decision result',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      timestamp: { type: 'string', format: 'date-time' },
+                      request: { type: 'object' },
+                      response: {
+                        type: 'object',
+                        properties: {
+                          result: { type: 'boolean' }
+                        }
+                      },
+                      type: { type: 'string', example: 'authz-policy' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  res.json(openApiSpec)
 })
 
 // OPA Proxy for Swagger UI
@@ -332,13 +661,34 @@ io.on('connection', (socket) => {
 
 // Function to capture OPA decision logs
 function captureOpaDecisionLog(policyPath, input, result, decisionId) {
+  // Determine the actual decision based on policy type and result
+  let decision = 'ALLOW'
+  let actualResult = result
+
+  if (policyPath.includes('dnc')) {
+    // For DNC policies, check can_contact field
+    if (
+      result &&
+      typeof result === 'object' &&
+      result.can_contact !== undefined
+    ) {
+      decision = result.can_contact ? 'ALLOW' : 'DENY'
+      actualResult = result.can_contact
+    }
+  } else {
+    // For other policies, use boolean result
+    decision = result ? 'ALLOW' : 'DENY'
+    actualResult = !!result
+  }
+
   const logEntry = {
     timestamp: new Date().toISOString(),
     decision_id: decisionId,
     policy: policyPath,
     input: input,
-    result: result,
-    decision: result ? 'ALLOW' : 'DENY',
+    result: actualResult,
+    full_result: result, // Keep the full result for debugging
+    decision: decision,
     level: 'info'
   }
 

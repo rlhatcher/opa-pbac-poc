@@ -4,7 +4,9 @@ import { buildPolicy } from './policyBuilder.js'
 
 const OPA_ENDPOINT =
   process.env.OPA_ENDPOINT || 'http://host.docker.internal:8181'
-const OPA_URL = `${OPA_ENDPOINT}/v1/data/policies/authz/allow`
+const AUTHZ_URL = `${OPA_ENDPOINT}/v1/data/policies/authz/allow`
+
+// PAP logging disabled for local development
 
 export const lambdaHandler = async (event) => {
   console.log('🔐 Lambda Authorizer invoked')
@@ -32,6 +34,22 @@ export const lambdaHandler = async (event) => {
 
     if (!decoded || !decoded.payload) {
       console.log('❌ Invalid JWT token structure')
+
+      // Log invalid token to PAP service - temporarily disabled
+      // logToPAPService(
+      //   'authorizer',
+      //   'policies/authz',
+      //   { token: 'invalid' },
+      //   false,
+      //   {
+      //     methodArn: event.methodArn,
+      //     path: event.path,
+      //     method: event.httpMethod,
+      //     decision: 'Deny',
+      //     errorType: 'invalid_token'
+      //   }
+      // ).catch((err) => console.log('⚠️ PAP logging failed:', err.message))
+
       return buildPolicy('Deny', event.methodArn, 'invalid-token')
     }
 
@@ -43,10 +61,16 @@ export const lambdaHandler = async (event) => {
     }
 
     console.log('📤 Calling OPA for authorization decision')
-    const opaRes = await fetch(OPA_URL, {
+    const opaRes = await fetch(AUTHZ_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input })
+      body: JSON.stringify({
+        input: {
+          method: event.httpMethod,
+          path: event.path.replace(/^\//, '').split('/'),
+          token: { payload: decoded.payload }
+        }
+      })
     })
 
     if (!opaRes.ok) {
@@ -54,15 +78,41 @@ export const lambdaHandler = async (event) => {
       return buildPolicy('Deny', event.methodArn, decoded.payload.sub)
     }
 
-    const { result } = await opaRes.json()
+    const opaResponse = await opaRes.json()
+    const result = opaResponse.result
     const policyEffect = result === true ? 'Allow' : 'Deny'
 
     console.log(
       `📋 OPA decision: ${policyEffect} for user ${decoded.payload.sub}`
     )
+
+    // Log authorization decision to PAP service (async, don't wait) - temporarily disabled
+    // logToPAPService('authorizer', 'policies/authz', input, result, {
+    //   methodArn: event.methodArn,
+    //   path: event.path,
+    //   method: event.httpMethod,
+    //   decision: policyEffect
+    // }).catch((err) => console.log('⚠️ PAP logging failed:', err.message))
+
     return buildPolicy(policyEffect, event.methodArn, decoded.payload.sub)
   } catch (error) {
     console.log('❌ Authorization error:', error.message)
+
+    // Log authorization error to PAP service - temporarily disabled
+    // logToPAPService(
+    //   'authorizer',
+    //   'policies/authz',
+    //   { error: error.message },
+    //   false,
+    //   {
+    //     methodArn: event.methodArn,
+    //     path: event.path,
+    //     method: event.httpMethod,
+    //     decision: 'Deny',
+    //     errorType: 'authorization_error'
+    //   }
+    // ).catch((err) => console.log('⚠️ PAP logging failed:', err.message))
+
     return buildPolicy('Deny', event.methodArn, 'error')
   }
 }

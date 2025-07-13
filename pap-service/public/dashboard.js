@@ -232,11 +232,13 @@ class PAPDashboard {
 
     const timestamp = new Date(log.timestamp).toLocaleTimeString()
     entry.innerHTML = `
-            <span style="color: #666;">[${timestamp}]</span>
-            <span style="color: #0066cc;">${log.policy || 'unknown'}</span>
-            <span style="color: ${log.result ? '#28a745' : '#dc3545'};">${
-      log.decision || log.result
-    }</span>
+            <span style="color: hsl(var(--muted-foreground));">[${timestamp}]</span>
+            <span style="color: hsl(var(--primary));">${
+              log.policy || 'unknown'
+            }</span>
+            <span style="color: ${
+              log.result ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'
+            };">${log.decision || log.result}</span>
             ${log.message ? `<br>${log.message}` : ''}
         `
 
@@ -329,9 +331,13 @@ class PAPDashboard {
 
     const timestamp = new Date(log.timestamp).toLocaleTimeString()
     entry.innerHTML = `
-            <span style="color: #666;">[${timestamp}]</span>
-            <span style="color: #ffc107;">${log.source || 'app'}</span>
-            <span style="color: #17a2b8;">${log.level || 'INFO'}</span>
+            <span style="color: hsl(var(--muted-foreground));">[${timestamp}]</span>
+            <span style="color: hsl(var(--secondary));">${
+              log.source || 'app'
+            }</span>
+            <span style="color: hsl(var(--primary));">${
+              log.level || 'INFO'
+            }</span>
             ${log.message}
         `
 

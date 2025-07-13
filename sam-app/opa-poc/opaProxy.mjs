@@ -3,6 +3,33 @@ import fetch from 'node-fetch'
 const OPA_ENDPOINT =
   process.env.OPA_ENDPOINT || 'http://host.docker.internal:8181'
 
+const PAP_ENDPOINT =
+  process.env.PAP_ENDPOINT || 'http://host.docker.internal:3004'
+
+// Function to log decisions to PAP service
+async function logToPAPService(source, policyPath, input, result, metadata) {
+  try {
+    await fetch(`${PAP_ENDPOINT}/api/log/gateway-decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source,
+        policyPath,
+        input,
+        result,
+        decisionId: `${source}-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        metadata
+      })
+    })
+  } catch (error) {
+    // Don't throw - logging failures shouldn't break the proxy
+    console.log('⚠️ PAP service logging failed:', error.message)
+  }
+}
+
 export const lambdaHandler = async (event, context) => {
   console.log('🔗 OPA Proxy Lambda invoked - Authorization was successful!')
   console.log('📝 Request path:', event.path)
@@ -72,6 +99,30 @@ export const lambdaHandler = async (event, context) => {
     // Get the response from OPA
     const opaResult = await opaResponse.json()
     console.log('✅ OPA response:', JSON.stringify(opaResult, null, 2))
+
+    // Log decision to PAP service (async, don't wait) - disabled for local development
+    // if (event.body) {
+    //   try {
+    //     const requestBody = JSON.parse(event.body)
+    //     const policyPath = event.path.replace('/', '')
+    //     logToPAPService(
+    //       'opa-proxy',
+    //       policyPath,
+    //       requestBody.input,
+    //       opaResult.result,
+    //       {
+    //         path: event.path,
+    //         method: event.httpMethod,
+    //         requestId: context.awsRequestId
+    //       }
+    //     ).catch((err) => console.log('⚠️ PAP logging failed:', err.message))
+    //   } catch (parseError) {
+    //     console.log(
+    //       '⚠️ Could not parse request body for logging:',
+    //       parseError.message
+    //     )
+    //   }
+    // }
 
     // Return the OPA response with proper CORS headers
     return {

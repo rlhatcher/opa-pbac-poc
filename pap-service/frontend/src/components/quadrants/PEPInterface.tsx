@@ -67,28 +67,26 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
     }
 
     try {
-      // Call OPA through API Gateway proxy for comprehensive DNC policy info
-      const response = await fetch('http://localhost:3000/policies/dnc', {
+      // Call PAP service DNC endpoint directly (API Gateway has issues)
+      const response = await fetch('http://localhost:3004/api/pep/test-dnc', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXUiXX0.test'
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ input: { expert, project } })
+        body: JSON.stringify({ expert, project })
       })
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const opaResult = await response.json()
+      const papResult = await response.json()
 
-      // Extract comprehensive policy result from full DNC package
-      const policyResult = opaResult.result || opaResult
+      // Extract comprehensive policy result from PAP service response
+      const policyResult = papResult.response.result || papResult.response
       const canContact = policyResult.can_contact
       const dncReasons = policyResult.dnc_reasons || []
-      const decisionId = opaResult.decision_id
+      const decisionId = papResult.timestamp
 
       // Format the result - include details only for DENY decisions
       const result = {
@@ -163,37 +161,28 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
     }
 
     try {
-      // Create a JWT token for testing
-      const testToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(
-        JSON.stringify(token.payload)
-      )}.test`
-
-      // Call OPA authorization policy through API Gateway proxy
-      const response = await fetch(
-        'http://localhost:3000/policies/authz/allow',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${testToken}`
-          },
-          body: JSON.stringify({ input: { method, path, token } })
-        }
-      )
+      // Call PAP service authorization endpoint directly (API Gateway has issues)
+      const response = await fetch('http://localhost:3004/api/pep/test-authz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ method, path, token })
+      })
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const opaResult = await response.json()
+      const papResult = await response.json()
 
-      // Format the result to match PAP service format
+      // Format the result from PAP service response
       const result = {
-        timestamp: new Date().toISOString(),
+        timestamp: papResult.timestamp,
         request: { method, path, token },
-        response: opaResult,
+        response: papResult.response,
         type: 'authz-policy',
-        decision: opaResult.result ? 'ALLOW' : 'DENY'
+        decision: papResult.response.result ? 'ALLOW' : 'DENY'
       }
 
       setLatestResponse(result)
@@ -229,25 +218,25 @@ export function PEPInterface({ socket }: PEPInterfaceProps) {
   const getStatusIcon = () => {
     switch (connectionStatus) {
       case 'connected':
-        return <CheckCircle className='h-4 w-4 text-green-500' />
+        return <CheckCircle className='h-4 w-4 text-primary' />
       case 'connecting':
-        return <Clock className='h-4 w-4 text-yellow-500' />
+        return <Clock className='h-4 w-4 text-muted-foreground' />
       case 'disconnected':
-        return <XCircle className='h-4 w-4 text-red-500' />
+        return <XCircle className='h-4 w-4 text-destructive' />
     }
   }
 
   const getResultIcon = (result: any) => {
     if (result?.error) {
-      return <XCircle className='h-4 w-4 text-red-500' />
+      return <XCircle className='h-4 w-4 text-destructive' />
     }
     if (result?.response?.result === true) {
-      return <CheckCircle className='h-4 w-4 text-green-500' />
+      return <CheckCircle className='h-4 w-4 text-primary' />
     }
     if (result?.response?.result === false) {
-      return <XCircle className='h-4 w-4 text-red-500' />
+      return <XCircle className='h-4 w-4 text-destructive' />
     }
-    return <AlertTriangle className='h-4 w-4 text-yellow-500' />
+    return <AlertTriangle className='h-4 w-4 text-muted-foreground' />
   }
 
   return (

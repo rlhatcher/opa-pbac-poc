@@ -1,0 +1,42 @@
+{
+  "expert_999": {
+    "expert_id": "expert_999",
+    "exclusions": ["pharmaceuticals", "healthcare"],
+    "last_updated": "2024-06-15T10:30:00Z",
+    "preferences_version": 2,
+    "contact_allowed": true,
+    "notes": "Temporarily unavailable for pharmaceutical projects"
+  },
+  "expert_123": {
+    "expert_id": "expert_123",
+    "exclusions": [],
+    "last_updated": "2024-07-10T14:20:00Z",
+    "preferences_version": 1,
+    "contact_allowed": true,
+    "notes": "Open to all project types"
+  },
+  "expert_456": {
+    "expert_id": "expert_456",
+    "exclusions": ["technology", "software"],
+    "last_updated": "2024-05-20T16:45:00Z",
+    "preferences_version": 1,
+    "contact_allowed": true,
+    "notes": "Focusing on non-tech projects this quarter"
+  },
+  "expert_555": {
+    "expert_id": "expert_555",
+    "exclusions": ["*"],
+    "last_updated": "2024-07-01T09:15:00Z",
+    "preferences_version": 3,
+    "contact_allowed": false,
+    "notes": "On sabbatical - no contact until further notice"
+  },
+  "expert_789": {
+    "expert_id": "expert_789",
+    "exclusions": ["financial_services", "banking"],
+    "last_updated": "2024-07-01T09:15:00Z",
+    "preferences_version": 1,
+    "contact_allowed": true,
+    "notes": "Currently engaged in competing financial project"
+  }
+}
