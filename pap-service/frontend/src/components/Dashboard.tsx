@@ -20,7 +20,7 @@ import { PolicyTestingPage } from './features/policy-testing/PolicyTestingPage'
 import { DecisionsPage } from './features/decisions/DecisionsPage'
 import { DataManagementPage } from './features/data-management/DataManagementPage'
 import { LogsPage } from './features/logs/LogsPage'
-import { SettingsPage } from './features/settings/SettingsPage'
+import { ReadmePage } from './features/readme/ReadmePage'
 import { DocumentationPage } from './features/documentation/DocumentationPage'
 
 // Custom Hooks
@@ -36,7 +36,7 @@ const sidebarItems = [
   { id: 'data', label: 'Data Management', icon: Database },
   { id: 'logs', label: 'Logs', icon: Terminal },
   { id: 'documentation', label: 'Documentation', icon: FileText },
-  { id: 'settings', label: 'Settings', icon: Settings }
+  { id: 'readme', label: 'README', icon: Settings }
 ]
 
 export function Dashboard() {
@@ -86,7 +86,7 @@ export function Dashboard() {
   // Auto-refresh for dashboard data
   // Reduce refresh frequency when socket is enabled since we get real-time updates
   const refreshInterval = socketEnabled ? 60000 : 30000 // 60s with socket, 30s without
-  const { autoRefresh, toggleAutoRefresh } = useAutoRefresh({
+  useAutoRefresh({
     enabled: true,
     interval: refreshInterval,
     onRefresh: async () => {
@@ -202,13 +202,7 @@ export function Dashboard() {
             <DocumentationPage openApiSpecs={openApiSpecs} />
           )}
 
-          {currentPage === 'settings' && (
-            <SettingsPage
-              autoRefresh={autoRefresh}
-              onToggleAutoRefresh={toggleAutoRefresh}
-              onHealthCheck={checkServiceStatus}
-            />
-          )}
+          {currentPage === 'readme' && <ReadmePage />}
         </PageContainer>
       </div>
     </DashboardLayout>

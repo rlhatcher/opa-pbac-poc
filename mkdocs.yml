@@ -54,31 +54,33 @@ nav:
   - Home: index.md
   - Quick Start: quick-start.md
   - Architecture:
-    - Overview: architecture/overview.md
-    - XACML Components: architecture/xacml.md
-    - Data Flow: architecture/data-flow.md
+      - Overview: architecture/overview.md
+      - XACML Components: architecture/xacml.md
+      - Data Flow: architecture/data-flow.md
   - Policies:
-    - Overview: policies/index.md
-    - DNC Policy: policies/dnc.md
-    - Authorization Policy: policies/authz.md
-    - Testing: policies/testing.md
+      - Overview: policies/index.md
+      - DNC Policy: policies/dnc.md
+      - Authorization Policy: policies/authz.md
+      - Testing: policies/testing.md
   - Services:
-    - SAM Application: services/sam-app.md
-    - Mock Services: services/mock-services.md
-    - PAP Dashboard: services/pap-dashboard.md
+      - SAM Application: services/sam-app.md
+      - Mock Services: services/mock-services.md
+      - PAP Dashboard: services/pap-dashboard.md
   - Development:
-    - Setup: development/setup.md
-    - Testing: development/testing.md
-    - Deployment: development/deployment.md
+      - Setup: development/setup.md
+      - Testing: development/testing.md
+      - Deployment: development/deployment.md
   - API Reference:
-    - OPA Endpoints: api/opa.md
-    - Preferences API: api/preferences.md
-    - PAP API: api/pap.md
+      - Policies API: api/policies.md
+      - Preferences API: api/preferences.md
+      - OPA Endpoints: api/opa.md
+      - PAP API: api/pap.md
 
 # Plugins
 plugins:
   - search
   - mermaid2
+  - swagger-ui-tag
 
 # Extra
 extra:
