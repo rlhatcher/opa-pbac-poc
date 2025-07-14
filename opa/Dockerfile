@@ -14,9 +14,6 @@ COPY policies/schemas/data.json /schemas.json
 # Expose the standard OPA port
 EXPOSE 8181
 
-# Create logs directory
-RUN mkdir -p /logs
-
 # Start OPA with policies, build-time data, schema, and file-based decision logging
 # The data.json file will be available as data.countries
 # The schemas.json file will be available as data.schemas
