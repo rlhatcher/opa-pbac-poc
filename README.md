@@ -4,7 +4,7 @@ A proof-of-concept demonstrating an AWS API Gateway custom authorizer that calls
 
 ## Overview
 
-This POC demonstrates two policy systems:
+This POC demonstrates three policy systems:
 
 ### 1. DNC (Do Not Contact) Policy
 
@@ -30,12 +30,30 @@ JWT-based access control for API Gateway endpoints with role-based authorization
 - **Path-based Authorization** - Validates URL path structure and ownership
 - **JWT Token Processing** - Decodes and validates JWT payload for user identity and roles
 
+### 3. Data Filtering Policy
+
+OpenSearch/Elasticsearch document filtering based on user roles and attributes:
+
+- **Role-based Access** - Admins see all documents, employees see department-specific content
+- **Attribute-based Filtering** - Documents filtered by department, ownership, and library access
+- **OpenSearch Integration** - Generates OpenSearch DSL queries for efficient data filtering
+- **Secure by Default** - Denies access unless explicitly allowed by policy rules
+
+**Key Features:**
+
+- Dynamic query generation based on user context
+- Department-based document access control
+- Document ownership validation
+- Library-scoped access control
+- Fail-safe deny-by-default security model
+
 ## Architecture
 
-The system demonstrates two distinct OPA policy use cases:
+The system demonstrates three distinct OPA policy use cases:
 
 1. **API Gateway Authorization** - JWT-based access control using `authz.rego`
 2. **Business Logic Policies** - DNC (Do Not Contact) rules using `dnc.rego`
+3. **Data Filtering** - OpenSearch document filtering using `data_filter.rego`
 
 ```text
 ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
@@ -295,13 +313,58 @@ The policy leverages hardcoded constants for optimal performance:
 │   │   └── dnc.rego            # DNC policy rules
 │   ├── authz/
 │   │   └── authz.rego          # Lambda authorizer policy rules
+│   ├── data_filter.rego        # Data filtering policy for OpenSearch
 │   └── data/                   # Runtime data (companies, config)
 ├── mock-services/
 │   └── preferences-api.yaml    # OpenAPI specification
 ├── sam-app/                    # Lambda authorizer (optional)
+├── data-filter/                # Data filtering demo application
+│   ├── src/
+│   │   ├── app.ts              # Main demo application
+│   │   └── init-opensearch.ts  # OpenSearch initialization
+│   ├── package.json            # Dependencies for data filtering
+│   └── tsconfig.json           # TypeScript configuration
 └── scripts/
-    └── load-dnc-data.sh        # Runtime data loading utility
+    ├── load-dnc-data.sh        # Runtime data loading utility
+    └── setup-data-filter.sh    # Data filter setup script
 ```
+
+## Data Filtering Demo
+
+The data-filter functionality demonstrates how OPA can generate OpenSearch/Elasticsearch queries for document filtering based on user roles and attributes.
+
+### Setup Data Filtering
+
+```bash
+# Setup the data-filter demo
+./scripts/setup-data-filter.sh
+
+# Start OPA and OpenSearch services
+docker-compose up opa opensearch
+```
+
+### Initialize OpenSearch with Sample Data
+
+```bash
+cd data-filter
+npm run init-opensearch
+```
+
+### Run the Data Filtering Demo
+
+```bash
+cd data-filter
+npm start
+```
+
+The demo will show how different users (admin, employees from different departments) see different sets of documents based on the OPA policy rules.
+
+**Example Output:**
+
+- **Admin users** see all documents
+- **Sales employees** see sales department documents + their own documents
+- **Marketing employees** see marketing department documents + their own documents
+- **Guest users** see no documents (denied by default)
 
 ## Stop Services
 

@@ -6,12 +6,6 @@ companies := data.companies # DNC companies data loaded at runtime via API
 countries := data.countries # DNC countries: CN, IR, KP, RU, SY, BY
 config := data.config # Service configuration and constants
 
-known_project_types := {
-	"financial_services", "healthcare", "technology", "manufacturing",
-	"energy", "telecommunications", "automotive", "aerospace",
-	"pharmaceuticals", "consulting",
-}
-
 # Top-level decision: can contact if input valid and no blocks
 default can_contact := false
 

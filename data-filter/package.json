@@ -1,0 +1,23 @@
+{
+  "name": "opa-opensearch-filter",
+  "version": "1.0.0",
+  "description": "OPA OpenSearch/Elasticsearch Data Filtering Example",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "init-opensearch": "ts-node src/init-opensearch.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "@opensearch-project/opensearch": "^2.6.0",
+    "ts-node": "^10.9.2"
+  }
+}
