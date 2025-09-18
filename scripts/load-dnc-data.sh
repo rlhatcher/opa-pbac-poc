@@ -33,21 +33,21 @@ check_opa() {
 load_data() {
     local data_file=$1
     local data_path=$2
-    
+
     echo -e "${YELLOW}📤 Loading $data_file into $data_path...${NC}"
-    
+
     if [ ! -f "$data_file" ]; then
         echo -e "${RED}❌ File not found: $data_file${NC}"
         return 1
     fi
-    
+
     response=$(curl -s -w "%{http_code}" -X PUT \
         "$OPA_URL/v1/data/$data_path" \
         -H "Content-Type: application/json" \
         -d @"$data_file")
-    
+
     http_code="${response: -3}"
-    
+
     if [ "$http_code" = "204" ]; then
         echo -e "${GREEN}✅ Successfully loaded $data_file${NC}"
     else
@@ -55,6 +55,8 @@ load_data() {
         return 1
     fi
 }
+
+
 
 # Function to verify data was loaded
 verify_data() {
@@ -82,7 +84,18 @@ check_opa
 
 # Load DNC companies data (runtime data via API)
 echo -e "${YELLOW}📦 Loading companies data at runtime...${NC}"
-load_data "$PROJECT_ROOT/policies/data/dnc_companies.json" "data"
+# Extract companies object from JSON wrapper and load to companies path
+companies_data=$(jq '.companies' "$PROJECT_ROOT/policies/data/dnc_companies.json")
+response=$(curl -s -w "%{http_code}" -X PUT \
+    "$OPA_URL/v1/data/companies" \
+    -H "Content-Type: application/json" \
+    -d "$companies_data")
+http_code="${response: -3}"
+if [ "$http_code" = "204" ]; then
+    echo -e "${GREEN}✅ Successfully loaded companies data${NC}"
+else
+    echo -e "${RED}❌ Failed to load companies data (HTTP $http_code)${NC}"
+fi
 
 echo -e "${YELLOW}ℹ️  Country data is baked into OPA container at build time${NC}"
 
@@ -92,7 +105,7 @@ load_data "$PROJECT_ROOT/policies/data/config.json" "config"
 # Verify the data was loaded correctly
 echo ""
 echo "🔍 Verifying loaded data..."
-verify_data "data/companies" "DNC Companies (Runtime)"
+verify_data "companies" "DNC Companies (Runtime)"
 
 # Check build-time countries data (available at root level)
 echo "🔍 Verifying DNC Countries (Build-time)..."
@@ -168,6 +181,6 @@ echo -e "${GREEN}🎉 DNC data loading and testing completed!${NC}"
 echo ""
 echo "Available endpoints:"
 echo "  📊 Policy Decision: POST $OPA_URL/v1/data/policies/dnc/can_contact"
-echo "  🏢 DNC Companies: GET $OPA_URL/v1/data/dnc/companies"
+echo "  🏢 DNC Companies: GET $OPA_URL/v1/data/companies/companies"
 echo "  🌍 DNC Countries: GET $OPA_URL/v1/data/dnc/countries"
 echo "  ⚙️  Configuration: GET $OPA_URL/v1/data/config"
