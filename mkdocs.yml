@@ -1,0 +1,81 @@
+site_name: OPA PBAC Proof of Concept
+site_description: Policy-Based Access Control using Open Policy Agent with AWS API Gateway
+site_author: OPA PBAC POC Team
+# site_url commented out for iframe compatibility - enables relative links
+# site_url: https://your-domain.github.io/opa-pbac-poc
+
+# Repository
+repo_name: opa-pbac-poc
+repo_url: https://github.com/your-org/opa-pbac-poc
+edit_uri: edit/main/docs/
+
+# Configuration
+use_directory_urls: false # Generate .html files for iframe compatibility
+theme:
+  name: material
+  custom_dir: overrides
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+
+# Navigation
+nav:
+  - Home: index.md
+  - Quick Start: quick-start.md
+  - Policy Documentation: policies.md
+  - SAM Application: sam-app.md
+  - Mock Services: mock-services.md
+  - PAP Dashboard: pap-dashboard.md
+  - Installation Guide: installation.md
+  - API Reference:
+      - Policies API: api/policies.md
+      - Preferences API: api/preferences.md
+
+# Plugins
+plugins:
+  - mermaid2
+  - swagger-ui-tag
+
+# Extra
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-org/opa-pbac-poc
+  version:
+    provider: mike
+
+# Custom CSS
+extra_css:
+  - stylesheets/extra.css

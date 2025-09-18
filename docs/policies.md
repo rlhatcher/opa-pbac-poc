@@ -1,27 +1,48 @@
-# Do Not Contact (DNC) Policy
+# OPA Policy Documentation
 
-This directory contains Open Policy Agent (OPA) policies for determining whether an expert can be contacted for a project based on various "Do Not Contact" restrictions.
+This directory contains Open Policy Agent (OPA) policies for the PBAC proof-of-concept, including business logic policies and authorization policies.
+
+## 📚 Navigation
+
+- **[← Home](index.md)** - Project overview and quick start
+- **[SAM Application](sam-app.md)** - Lambda authorizer and testing
+- **[Mock Services](mock-services.md)** - Expert preferences API
+- **[PAP Dashboard](pap-dashboard.md)** - Policy administration interface
 
 ## Policy Overview
 
-The DNC policy evaluates three main sources of restrictions:
+This POC demonstrates two distinct policy types:
 
-1. **Company Restrictions** - Experts employed by certain companies cannot be contacted
-2. **Country Restrictions** - Experts located in certain countries cannot be contacted
-3. **Expert Preferences** - Experts can opt out of specific project types via an external API
+### 1. DNC (Do Not Contact) Policy
+
+A business logic policy that evaluates three main sources of restrictions:
+
+- **Company Restrictions** - Experts employed by certain companies cannot be contacted
+- **Country Restrictions** - Experts located in certain countries cannot be contacted
+- **Expert Preferences** - Experts can opt out of specific project types via an external API
+
+### 2. Authorization Policy
+
+A JWT-based access control policy that enforces:
+
+- **User Access Control** - Users can only access their own data
+- **Role-based Authorization** - Admin users can access any resource
+- **Method Validation** - Supports specific HTTP methods
 
 ## Files Structure
 
-```
+```text
 policies/
 ├── dnc/
 │   └── dnc.rego                # DNC (Do Not Contact) policy rules
 ├── authz/
-│   └── authz.rego              # Lambda authorizer policy rules
-└── data/
-    ├── dnc_companies.json      # List of restricted companies
-    ├── dnc_countries.json      # List of restricted countries
-    └── config.json             # Configuration settings
+│   └── authz.rego              # Authorization policy rules
+├── data/
+│   ├── dnc_companies.json      # List of restricted companies
+│   ├── dnc_countries.json      # List of restricted countries
+│   └── config.json             # Configuration settings
+└── schemas/
+    └── data.json               # JSON schema definitions
 ```
 
 ## Policy Rules
@@ -37,7 +58,7 @@ Returns `true` only if ALL of the following conditions are met:
 - Expert is NOT located in a DNC country
 - Expert has NOT opted out of the project type
 
-### Supporting Rules
+#### Supporting Rules
 
 - `input_is_valid` - Validates required input fields
 - `employed_by_dnc_company` - Checks company restrictions
@@ -57,8 +78,9 @@ Returns `true` if either of the following conditions are met:
 
 #### Authorization Rules
 
-- User access validation based on JWT subject
-- Role-based access control for admin users
+- `is_user_accessing_own_data` - Validates user access to own resources
+- `is_admin` - Checks for admin role in JWT token
+- `is_valid_method` - Validates allowed HTTP methods
 
 ## Input Format
 

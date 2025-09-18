@@ -80,15 +80,66 @@ Resources:
         Variables:
           NODE_ENV: !Ref Environment
       Events:
-        ApiEvent:
+        # Specific non-policy routes (avoid catch-all conflicts)
+        UserRoutes:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /{proxy+}
+            Path: /user/{proxy+}
+            Method: ANY
+        AdminRoutes:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/{proxy+}
             Method: ANY
       DeadLetterQueue:
         Type: SQS
         TargetArn: !GetAtt BackendDLQ.Arn
+
+  # OPA Proxy Function (proxies requests directly to OPA)
+  OpaProxyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: opa-poc
+      Handler: opaProxy.lambdaHandler
+      FunctionName: !Sub '${AWS::StackName}-opa-proxy'
+      Description: Proxy function that forwards policy requests to OPA
+      Environment:
+        Variables:
+          OPA_ENDPOINT: !Ref OpaEndpoint
+          NODE_ENV: !Ref Environment
+      Events:
+        # DNC Policy routes
+        DncCanContact:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /policies/dnc/can_contact
+            Method: POST
+        HealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /health
+            Method: GET
+        DncFullPolicy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /policies/dnc
+            Method: POST
+
+        # Authorization Policy routes
+        AuthzAllow:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /policies/authz/allow
+            Method: POST
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt OpaProxyDLQ.Arn
 
   # Dead Letter Queue for failed authorizations
   AuthorizerDLQ:
@@ -105,6 +156,16 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub '${AWS::StackName}-backend-dlq'
+      MessageRetentionPeriod: 1209600 # 14 days
+      Tags:
+        - Key: Project
+          Value: OPA-PBAC
+
+  # Dead Letter Queue for OPA proxy function
+  OpaProxyDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${AWS::StackName}-opa-proxy-dlq'
       MessageRetentionPeriod: 1209600 # 14 days
       Tags:
         - Key: Project

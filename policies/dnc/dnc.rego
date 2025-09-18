@@ -89,23 +89,19 @@ default preferences_service_timeout := "5s"
 preferences_service_timeout := config.config.preferences_service_timeout
 
 # Collect all reasons why contact is not allowed
-rejection_reasons contains reason if {
-	reason == "invalid_input"
+rejection_reasons contains "invalid_input" if {
 	not input_is_valid
 }
 
-rejection_reasons contains reason if {
-	reason == "company_restriction"
+rejection_reasons contains "company_restriction" if {
 	employed_by_dnc_company
 }
 
-rejection_reasons contains reason if {
-	reason == "country_restriction"
+rejection_reasons contains "country_restriction" if {
 	located_in_dnc_country
 }
 
-rejection_reasons contains reason if {
-	reason == "expert_preference"
+rejection_reasons contains "expert_preference" if {
 	opted_out_by_preference
 }
 

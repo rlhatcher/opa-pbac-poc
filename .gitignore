@@ -208,3 +208,9 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/osx,node,linux,windows,sam
+
+# MkDocs generated files (we have the source in docs/)
+site/
+pap-service/frontend/public/
+pap-service/frontend/dist/
+sam-app/playwright-report/*

@@ -1,0 +1,42 @@
+{
+  "setup": {
+    "description": "OPA PBAC POC Setup Configuration",
+    "version": "1.0.0"
+  },
+  "options": {
+    "install_sam_cli": true,
+    "setup_aws_credentials": true,
+    "use_dummy_aws_credentials": false,
+    "run_tests_after_setup": true,
+    "open_browser_after_setup": true,
+    "auto_start_sam_local": false
+  },
+  "aws": {
+    "default_region": "us-east-1",
+    "default_output": "json",
+    "dummy_credentials": {
+      "access_key_id": "test",
+      "secret_access_key": "test",
+      "note": "These are dummy credentials for local SAM development only"
+    }
+  },
+  "services": {
+    "opa_port": 8181,
+    "preferences_port": 3002,
+    "pap_dashboard_port": 3004,
+    "swagger_ui_port": 3003,
+    "sam_api_port": 3000,
+    "sam_lambda_port": 3001
+  },
+  "timeouts": {
+    "service_startup_wait": 10,
+    "health_check_timeout": 30,
+    "docker_build_timeout": 300
+  },
+  "features": {
+    "enable_verbose_logging": false,
+    "skip_docker_build_cache": false,
+    "validate_prerequisites": true,
+    "create_backup_configs": true
+  }
+}

@@ -5,7 +5,12 @@ services:
       dockerfile: opa/Dockerfile
     platform: linux/amd64
     ports:
-      - '8181:8181'
+      - '${OPA_PORT:-8181}:8181'
+    environment:
+      - OPA_LOG_LEVEL=${OPA_LOG_LEVEL:-info}
+      - OPA_DECISION_LOGS_ENABLED=${OPA_DECISION_LOGS_ENABLED:-true}
+    volumes:
+      - ./logs:/logs
     depends_on:
       - preferences-service
 
@@ -14,9 +19,9 @@ services:
       context: ./mock-services
       dockerfile: Dockerfile
     ports:
-      - '3002:3002'
+      - '${PREFERENCES_PORT:-3002}:3002'
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-development}
       - PORT=3002
     volumes:
       - ./mock-services:/app
@@ -38,7 +43,7 @@ services:
   swagger-ui:
     image: swaggerapi/swagger-ui:latest
     ports:
-      - '3003:8080'
+      - '${SWAGGER_UI_PORT:-3003}:8080'
     environment:
       - SWAGGER_JSON=/app/preferences-api.yaml
       - BASE_URL=/
@@ -68,6 +73,46 @@ services:
           '--tries=1',
           '--spider',
           'http://localhost:8080/'
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  pap-service:
+    build:
+      context: ./pap-service
+      dockerfile: Dockerfile
+    ports:
+      - '${PAP_SERVICE_PORT:-3004}:3004'
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3004
+      - DOCKER_ENV=true
+      - OPA_URL=${OPA_URL_DOCKER:-http://opa:8181}
+      - PREFERENCES_URL=${PREFERENCES_URL_DOCKER:-http://preferences-service:3002}
+      - SAM_API_URL=${SAM_API_URL_DOCKER:-http://host.docker.internal:3000}
+      - SAM_LAMBDA_URL=${SAM_LAMBDA_URL_DOCKER:-http://host.docker.internal:3001}
+      - OPA_CONTAINER_NAME=${OPA_CONTAINER_NAME:-opa-pbac-poc-opa-1}
+      - PAP_AUTO_REFRESH=${PAP_AUTO_REFRESH:-true}
+      - PAP_SOCKET_ENABLED=${PAP_SOCKET_ENABLED:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./pap-service:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - opa
+      - preferences-service
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3004/'
         ]
       interval: 10s
       timeout: 5s

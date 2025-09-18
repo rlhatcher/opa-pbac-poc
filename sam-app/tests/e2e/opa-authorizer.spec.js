@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 
 // Test JWT tokens for different scenarios
 const createTestJWT = (payload) => {
-  return jwt.sign(payload, 'test-secret', {
+  return jwt.sign(payload, 'your-secret-key', {
     algorithm: 'HS256',
     expiresIn: '1h',
     header: { typ: 'JWT', alg: 'HS256' }
@@ -29,7 +29,7 @@ const testTokens = {
 }
 
 test.describe('OPA Policy Engine Tests', () => {
-  test.use({ baseURL: 'http://localhost:8181' })
+  test.use({ baseURL: 'http://localhost:3000' })
 
   test('should allow access for user accessing own data', async ({
     request
@@ -41,8 +41,12 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/authz/allow', {
-      data: { input }
+    const response = await request.post('/policies/authz/allow', {
+      data: { input },
+      headers: {
+        'Authorization': `Bearer ${testTokens.validUser}`,
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
@@ -60,8 +64,12 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/authz/allow', {
-      data: { input }
+    const response = await request.post('/policies/authz/allow', {
+      data: { input },
+      headers: {
+        'Authorization': `Bearer ${testTokens.validUser}`,
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
@@ -79,8 +87,12 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'admin'
     }
 
-    const response = await request.post('/v1/data/policies/authz/allow', {
-      data: { input }
+    const response = await request.post('/policies/authz/allow', {
+      data: { input },
+      headers: {
+        'Authorization': `Bearer ${testTokens.adminUser}`,
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
@@ -96,8 +108,12 @@ test.describe('OPA Policy Engine Tests', () => {
       user_id: 'alice'
     }
 
-    const response = await request.post('/v1/data/policies/authz/allow', {
-      data: { input }
+    const response = await request.post('/policies/authz/allow', {
+      data: { input },
+      headers: {
+        'Authorization': `Bearer ${testTokens.validUser}`,
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()

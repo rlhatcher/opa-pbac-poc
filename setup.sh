@@ -1,9 +1,17 @@
 #!/bin/bash
 
 # OPA + Lambda Authorizer POC - Complete End-to-End Setup
+#
+# Usage:
+#   ./setup.sh                    # Standard mode (PAP service in Docker)
+#   PAP_DEV_MODE=true ./setup.sh  # Development mode (PAP service with hot reload)
+#
 set -e
 
 echo "🚀 OPA + Lambda Authorizer POC - Complete Setup"
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    echo "🔥 Running in PAP Development Mode (Hot Reload Enabled)"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -36,12 +44,22 @@ check_service() {
 
 # Step 1: Start Docker services
 echo -e "${BLUE}📦 Starting Docker services...${NC}"
-docker-compose up -d
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    echo -e "${YELLOW}🔥 PAP Development Mode: Starting services without PAP container${NC}"
+    # Start all services except PAP service to avoid port conflict
+    docker-compose up -d opa preferences-service swagger-ui
+else
+    # Start all services including PAP service
+    docker-compose up -d
+fi
 
 # Step 2: Check Docker services
 check_service "http://localhost:8181/health" "OPA Server"
 check_service "http://localhost:3002/project-types" "Preferences Service"
 check_service "http://localhost:3003/" "Swagger UI"
+if [ "$PAP_DEV_MODE" != "true" ]; then
+    check_service "http://localhost:3004/" "PAP Dashboard (Docker)"
+fi
 
 # Step 3: Load DNC data
 echo -e "${BLUE}📊 Loading DNC data...${NC}"
@@ -101,6 +119,60 @@ SAM_LAMBDA_PID=$!
 check_service "http://localhost:3000" "SAM Local API"
 check_service "http://localhost:3001/2015-03-31/functions" "SAM Local Lambda"
 
+# Step 8.5: Optional - Start PAP service in development mode
+# Check if user wants to run PAP service in development mode (outside Docker)
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    echo -e "${BLUE}🛡️  Starting PAP service in development mode...${NC}"
+
+    # Ensure PAP container is not running to avoid port conflict
+    echo -e "${YELLOW}🔍 Checking for existing PAP container on port 3004...${NC}"
+    if docker ps --format "table {{.Names}}\t{{.Ports}}" | grep -q "3004"; then
+        echo -e "${YELLOW}⚠️  Stopping existing PAP container to free port 3004...${NC}"
+        docker-compose stop pap-service 2>/dev/null || true
+        docker-compose rm -f pap-service 2>/dev/null || true
+        sleep 2
+    fi
+
+    # Also kill any other processes using port 3004
+    if lsof -ti:3004 >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  Killing existing processes on port 3004...${NC}"
+        lsof -ti:3004 | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+
+    cd ../pap-service
+
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ]; then
+        echo "📦 Installing PAP service dependencies..."
+        npm install
+    fi
+
+    # Install frontend dependencies if needed
+    if [ ! -d "frontend/node_modules" ]; then
+        echo "📦 Installing PAP frontend dependencies..."
+        cd frontend
+        npm install --legacy-peer-deps
+        cd ..
+    fi
+
+    # Start PAP service in development mode (both backend and frontend)
+    echo "🚀 Starting PAP service with hot reload..."
+    npm run dev:full &
+    PAP_DEV_PID=$!
+
+    # Wait for PAP service to be ready
+    sleep 5
+    check_service "http://localhost:3004/" "PAP Dashboard (Dev Mode)"
+    check_service "http://localhost:5173/" "PAP Frontend (Dev Mode)"
+
+    # Go back to the sam-app directory for the rest of the script
+    cd ../sam-app
+    echo -e "${GREEN}✅ PAP service running in development mode${NC}"
+    echo -e "${BLUE}  Backend: http://localhost:3004${NC}"
+    echo -e "${BLUE}  Frontend: http://localhost:5173${NC}"
+fi
+
 # Step 9: Run comprehensive tests
 echo -e "${BLUE}🧪 Running comprehensive tests...${NC}"
 
@@ -124,8 +196,12 @@ echo -e "${BLUE}Available services:${NC}"
 echo "  📊 OPA Server: http://localhost:8181"
 echo "  🎭 Preferences Service: http://localhost:3002"
 echo "  📖 Swagger UI: http://localhost:3003"
+echo "  🛡️  PAP Dashboard: http://localhost:3004"
 echo "  🌐 SAM Local API: http://localhost:3000"
 echo "  🔧 SAM Local Lambda: http://localhost:3001"
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    echo "  🔥 PAP Frontend (Dev): http://localhost:5173"
+fi
 echo ""
 echo -e "${BLUE}Quick tests:${NC}"
 echo "  # Test DNC policy"
@@ -145,7 +221,11 @@ echo "  # Run all tests again"
 echo "  cd sam-app && npx playwright test"
 echo ""
 echo -e "${BLUE}To stop all services:${NC}"
-echo "  kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true"
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    echo "  kill $SAM_API_PID $SAM_LAMBDA_PID $PAP_DEV_PID 2>/dev/null || true"
+else
+    echo "  kill $SAM_API_PID $SAM_LAMBDA_PID 2>/dev/null || true"
+fi
 echo "  docker-compose down"
 echo ""
 echo -e "${BLUE}To check running processes:${NC}"
@@ -159,6 +239,21 @@ echo -e "${GREEN}✅ OPA Server + Policies${NC}"
 echo -e "${GREEN}✅ Mock Services + Documentation${NC}"
 echo -e "${GREEN}✅ Lambda Authorizer Integration${NC}"
 echo -e "${GREEN}✅ Comprehensive Test Suite${NC}"
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    echo -e "${GREEN}✅ PAP Service (Development Mode)${NC}"
+fi
+echo ""
+echo -e "${BLUE}💡 Development Tips:${NC}"
+echo "  # Run PAP service in development mode (hot reload):"
+echo "  PAP_DEV_MODE=true ./setup.sh"
+echo ""
+echo "  # Access PAP dashboard:"
+echo "  - Production mode: http://localhost:3004 (Docker)"
+echo "  - Development mode: http://localhost:5173 (React dev server)"
+echo ""
+echo "  # Port 3004 conflict resolution:"
+echo "  - Dev mode automatically stops PAP Docker container"
+echo "  - Standard mode runs PAP in Docker as usual"
 
 # Function to show current process status
 show_process_status() {
@@ -198,6 +293,19 @@ cleanup() {
         fi
     fi
 
+    # Kill PAP development process if running
+    if [ -n "$PAP_DEV_PID" ]; then
+        if kill $PAP_DEV_PID 2>/dev/null; then
+            echo "✅ PAP development process stopped"
+        else
+            echo "⚠️  PAP development process may have already stopped"
+        fi
+        # Also kill any remaining PAP processes
+        pkill -f "npm run dev:full" 2>/dev/null || true
+        pkill -f "nodemon server.js" 2>/dev/null || true
+        pkill -f "vite" 2>/dev/null || true
+    fi
+
     # Fallback: kill any remaining sam local processes
     pkill -f "sam local start" 2>/dev/null || true
 
@@ -216,10 +324,20 @@ cleanup() {
 
     # Stop Docker services (go back to root directory first)
     cd ..
-    if docker-compose down; then
-        echo "✅ Docker services stopped"
+    if [ "$PAP_DEV_MODE" = "true" ]; then
+        echo "🐳 Stopping Docker services (excluding PAP)..."
+        if docker-compose stop opa preferences-service swagger-ui; then
+            echo "✅ Docker services stopped (PAP dev mode)"
+        else
+            echo "⚠️  Failed to stop some Docker services"
+        fi
     else
-        echo "⚠️  Failed to stop Docker services"
+        echo "🐳 Stopping all Docker services..."
+        if docker-compose down; then
+            echo "✅ Docker services stopped"
+        else
+            echo "⚠️  Failed to stop Docker services"
+        fi
     fi
 
     # Show final status after cleanup
@@ -237,10 +355,17 @@ trap cleanup INT
 echo "Press Ctrl+C to stop all services..."
 
 # Keep the script running until interrupted
-while kill -0 $SAM_API_PID 2>/dev/null && kill -0 $SAM_LAMBDA_PID 2>/dev/null; do
-    sleep 1
-done
-
-# If we get here, one of the processes has died
-echo "⚠️  One of the SAM processes has stopped unexpectedly"
+if [ "$PAP_DEV_MODE" = "true" ]; then
+    # Monitor all processes including PAP development
+    while kill -0 $SAM_API_PID 2>/dev/null && kill -0 $SAM_LAMBDA_PID 2>/dev/null && kill -0 $PAP_DEV_PID 2>/dev/null; do
+        sleep 1
+    done
+    echo "⚠️  One of the processes (SAM or PAP) has stopped unexpectedly"
+else
+    # Monitor only SAM processes
+    while kill -0 $SAM_API_PID 2>/dev/null && kill -0 $SAM_LAMBDA_PID 2>/dev/null; do
+        sleep 1
+    done
+    echo "⚠️  One of the SAM processes has stopped unexpectedly"
+fi
 cleanup

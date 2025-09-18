@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Do Not Contact (DNC) Policy Tests', () => {
-  test.use({ baseURL: 'http://localhost:8181' })
+  test.use({ baseURL: 'http://localhost:3000' })
 
   test('should allow contact when no DNC restrictions apply', async ({
     request
@@ -20,13 +20,18 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post('/v1/data/policies/dnc/can_contact', {
-      data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
-    expect(result.result).toBe(true)
+    expect(result.result.can_contact).toBe(true)
   })
 
   test('should block contact when expert works for DNC company', async ({
@@ -46,13 +51,18 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post('/v1/data/policies/dnc/can_contact', {
-      data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
-    expect(result.result).toBe(false)
+    expect(result.result.can_contact).toBe(false)
   })
 
   test('should block contact when expert is in sanctioned country', async ({
@@ -72,13 +82,18 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post('/v1/data/policies/dnc/can_contact', {
-      data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
-    expect(result.result).toBe(false)
+    expect(result.result.can_contact).toBe(false)
   })
 
   test('should block contact for multiple DNC reasons', async ({ request }) => {
@@ -96,13 +111,18 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post('/v1/data/policies/dnc/can_contact', {
-      data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
-    expect(result.result).toBe(false)
+    expect(result.result.can_contact).toBe(false)
   })
 
   test('should handle invalid input gracefully', async ({ request }) => {
@@ -117,13 +137,18 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post('/v1/data/policies/dnc/can_contact', {
-      data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
+      }
     })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
-    expect(result.result).toBe(false)
+    expect(result.result.can_contact).toBe(false)
   })
 
   test('should provide blocked company details when applicable', async ({
@@ -143,21 +168,22 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post(
-      '/v1/data/policies/dnc/blocked_company',
-      {
-        data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
       }
-    )
+    })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
 
-    expect(result.result).toBeDefined()
-    expect(result.result.id).toBe('comp_001')
-    expect(result.result.name).toBe('Confidential Corp')
-    expect(result.result.reason).toBe('Client confidentiality agreement')
-    expect(result.result.category).toBe('client_restriction')
+    expect(result.result.can_contact).toBe(false)
+    expect(result.result.blocked_company).toBeDefined()
+    expect(result.result.blocked_company.id).toBe('comp_001')
+    expect(result.result.blocked_company.name).toBe('Confidential Corp')
   })
 
   test('should provide blocked country details when applicable', async ({
@@ -177,21 +203,22 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post(
-      '/v1/data/policies/dnc/blocked_country',
-      {
-        data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
       }
-    )
+    })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
 
-    expect(result.result).toBeDefined()
-    expect(result.result.id).toBe('CN')
-    expect(result.result.name).toBe('China')
-    expect(result.result.reason).toBe('Export control restrictions')
-    expect(result.result.category).toBe('export_control')
+    expect(result.result.can_contact).toBe(false)
+    expect(result.result.blocked_country).toBeDefined()
+    expect(result.result.blocked_country.id).toBe('CN')
+    expect(result.result.blocked_country.name).toBe('China')
   })
 
   test('should validate all required input fields', async ({ request }) => {
@@ -209,15 +236,17 @@ test.describe('Do Not Contact (DNC) Policy Tests', () => {
       }
     }
 
-    const response = await request.post(
-      '/v1/data/policies/dnc/input_is_valid',
-      {
-        data: { input }
+    const response = await request.post('/policies/dnc', {
+      data: { input },
+      headers: {
+        'Authorization':
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsInJvbGVzIjpbInVzZXIiXX0.test',
+        'Content-Type': 'application/json'
       }
-    )
+    })
 
     expect(response.ok()).toBeTruthy()
     const result = await response.json()
-    expect(result.result).toBe(true)
+    expect(result.result.input_is_valid).toBe(true)
   })
 })

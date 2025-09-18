@@ -1,6 +1,13 @@
-# Expert Preferences Service (Static Mock + Swagger UI)
+# Expert Preferences Service - Static Mock API
 
-A static mock service for testing the DNC (Do Not Contact) policy with built-in Swagger UI documentation.
+A static mock service for testing the DNC (Do Not Contact) policy with built-in Swagger UI documentation and predictable test data.
+
+## 📚 Navigation
+
+- **[← Home](index.md)** - Project overview and quick start
+- **[Policy Documentation](policies.md)** - DNC and authorization policies
+- **[SAM Application](sam-app.md)** - Lambda authorizer and testing
+- **[PAP Dashboard](pap-dashboard.md)** - Policy administration interface
 
 ## Overview
 
@@ -8,13 +15,13 @@ This service provides a static mock REST API for managing expert preferences usi
 
 ## Features
 
-- ✅ **OpenAPI 3.0 Specification** - Single source of truth for API contract
-- ✅ **Static Mock Server** - Express.js server with predictable test data
-- ✅ **Integrated Swagger UI** - Interactive API documentation at `/api-docs`
-- ✅ **Pre-loaded Test Data** - Static expert preferences for consistent testing
-- ✅ **CORS Support** - Cross-origin requests enabled for browser testing
-- ✅ **Docker Support** - Containerized for easy deployment
-- ✅ **Health Checks** - Built-in health monitoring endpoints
+- **OpenAPI 3.0 Specification** - Single source of truth for API contract
+- **Static Mock Server** - Express.js server with predictable test data
+- **Integrated Swagger UI** - Interactive API documentation at `/api-docs`
+- **Pre-loaded Test Data** - Static expert preferences for consistent testing
+- **CORS Support** - Cross-origin requests enabled for browser testing
+- **Docker Support** - Containerized for easy deployment
+- **Health Checks** - Built-in health monitoring endpoints
 
 ## Quick Start
 
@@ -35,9 +42,9 @@ This single command starts:
 
 Services will be available at:
 
-- **Preferences API**: <http://localhost:3002>
-- **Swagger UI**: <http://localhost:3003>
-- **Local Swagger UI**: <http://localhost:3002/api-docs>
+- **Preferences API**: `http://localhost:3002`
+- **Swagger UI**: `http://localhost:3003`
+- **Local Swagger UI**: `http://localhost:3002/api-docs`
 
 ### Standalone Development (Optional)
 
@@ -57,8 +64,8 @@ npm start
 
 ### Base URL
 
-- Local: `http://localhost:3002`
-- Docker: `http://preferences-service:3002`
+- **Local**: `http://localhost:3002`
+- **Docker**: `http://preferences-service:3002`
 
 ### Authentication
 

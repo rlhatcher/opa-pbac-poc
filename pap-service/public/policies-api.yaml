@@ -1,0 +1,362 @@
+openapi: 3.0.3
+info:
+  title: OPA Policy API
+  description: |
+    Open Policy Agent (OPA) Policy Evaluation API for PBAC (Policy-Based Access Control) demonstration.
+    
+    This API provides endpoints for testing and evaluating different types of policies:
+    - **DNC Policy**: "Do Not Contact" business logic for expert consultation restrictions
+    - **Authorization Policy**: JWT-based access control for API endpoints
+    
+    ## Policy Types
+    
+    ### DNC (Do Not Contact) Policy
+    Evaluates whether an expert can be contacted for a project based on:
+    - Company restrictions (DNC company list)
+    - Country restrictions (sanctioned countries)
+    - Expert preferences (project type exclusions)
+    
+    ### Authorization Policy
+    Evaluates API access permissions based on:
+    - JWT token validation
+    - User identity verification
+    - Role-based access control
+    
+  version: 1.0.0
+  contact:
+    name: OPA PBAC POC
+    url: https://github.com/rlhatcher/opa-pbac-poc
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8181/v1/data/policies
+    description: OPA Server - Policy Evaluation Endpoint
+
+paths:
+  /dnc/can_contact:
+    post:
+      tags:
+        - DNC Policy
+      summary: Evaluate DNC (Do Not Contact) Policy
+      description: |
+        Determines whether an expert can be contacted for a specific project based on DNC restrictions.
+        
+        **Decision Logic:**
+        - ✅ **Allow contact** if ALL conditions are met:
+          - Input data is valid
+          - Expert is NOT employed by a DNC company
+          - Expert is NOT located in a DNC country  
+          - Expert has NOT opted out of the project type
+        - ❌ **Block contact** if ANY restriction applies
+        
+        **Data Sources:**
+        - Company restrictions: Runtime data loaded via API
+        - Country restrictions: Build-time data baked into OPA container
+        - Expert preferences: Real-time API calls to preferences service
+        
+      operationId: evaluateDncPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DncPolicyInput'
+            examples:
+              allowed_expert:
+                summary: Expert allowed (no restrictions)
+                value:
+                  input:
+                    expert:
+                      id: "expert_123"
+                      current_company_id: "comp_safe_456"
+                      country_id: "US"
+                      name: "John Smith"
+                    project:
+                      id: "proj_789"
+                      type: "technology"
+                      title: "Cloud Migration Assessment"
+              blocked_by_country:
+                summary: Expert blocked (sanctioned country)
+                value:
+                  input:
+                    expert:
+                      id: "expert_456"
+                      country_id: "CN"
+                      name: "Li Wei"
+                    project:
+                      type: "financial_services"
+              blocked_by_preferences:
+                summary: Expert blocked (opted out of pharmaceuticals)
+                value:
+                  input:
+                    expert:
+                      id: "expert_999"
+                      name: "Dr. Sarah Johnson"
+                    project:
+                      type: "pharmaceuticals"
+              invalid_input:
+                summary: Invalid input (missing required fields)
+                value:
+                  input:
+                    expert:
+                      id: ""
+                    project:
+                      type: "invalid_type"
+      responses:
+        '200':
+          description: Policy evaluation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DncPolicyResponse'
+              examples:
+                contact_allowed:
+                  summary: Contact allowed
+                  value:
+                    result: true
+                contact_blocked_country:
+                  summary: Contact blocked by country restriction
+                  value:
+                    result: false
+                contact_blocked_preferences:
+                  summary: Contact blocked by expert preferences
+                  value:
+                    result: false
+                validation_error:
+                  summary: Input validation failed
+                  value:
+                    result: false
+        '400':
+          description: Invalid request format
+        '500':
+          description: Policy evaluation error
+
+  /authz/allow:
+    post:
+      tags:
+        - Authorization Policy
+      summary: Evaluate Authorization Policy
+      description: |
+        Determines whether a user is authorized to access a specific API endpoint based on JWT token and request context.
+        
+        **Authorization Rules:**
+        - ✅ **Allow access** if EITHER condition is met:
+          - User is accessing their own data (`/user/{user_id}` where `user_id` matches JWT subject)
+          - User has `admin` role in their JWT token
+        - ❌ **Deny access** for all other cases
+        
+        **Supported Methods:** GET, PUT, PATCH
+        
+      operationId: evaluateAuthzPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthzPolicyInput'
+            examples:
+              user_own_data:
+                summary: User accessing own data (allowed)
+                value:
+                  input:
+                    method: "GET"
+                    path: ["user", "alice"]
+                    token:
+                      payload:
+                        sub: "alice"
+                        roles: ["user"]
+                        iat: 1640995200
+                        exp: 1641081600
+              admin_access:
+                summary: Admin accessing any data (allowed)
+                value:
+                  input:
+                    method: "GET"
+                    path: ["user", "bob"]
+                    token:
+                      payload:
+                        sub: "admin"
+                        roles: ["admin"]
+                        iat: 1640995200
+                        exp: 1641081600
+              unauthorized_access:
+                summary: User accessing other user's data (denied)
+                value:
+                  input:
+                    method: "GET"
+                    path: ["user", "bob"]
+                    token:
+                      payload:
+                        sub: "alice"
+                        roles: ["user"]
+                        iat: 1640995200
+                        exp: 1641081600
+      responses:
+        '200':
+          description: Authorization evaluation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthzPolicyResponse'
+              examples:
+                access_allowed:
+                  summary: Access allowed
+                  value:
+                    result: true
+                access_denied:
+                  summary: Access denied
+                  value:
+                    result: false
+        '400':
+          description: Invalid request format
+        '500':
+          description: Authorization evaluation error
+
+components:
+  schemas:
+    DncPolicyInput:
+      type: object
+      required:
+        - input
+      properties:
+        input:
+          type: object
+          required:
+            - expert
+            - project
+          properties:
+            expert:
+              $ref: '#/components/schemas/Expert'
+            project:
+              $ref: '#/components/schemas/Project'
+    
+    Expert:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: Unique expert identifier
+          example: "expert_123"
+        current_company_id:
+          type: string
+          description: Current employer company ID
+          example: "comp_456"
+        country_id:
+          type: string
+          description: Expert's country code (ISO 2-letter)
+          example: "US"
+        name:
+          type: string
+          description: Expert's full name
+          example: "John Smith"
+    
+    Project:
+      type: object
+      required:
+        - type
+      properties:
+        id:
+          type: string
+          description: Unique project identifier
+          example: "proj_789"
+        type:
+          type: string
+          enum:
+            - financial_services
+            - healthcare
+            - technology
+            - manufacturing
+            - energy
+            - telecommunications
+            - automotive
+            - aerospace
+            - pharmaceuticals
+            - consulting
+          description: Project type/industry
+          example: "technology"
+        title:
+          type: string
+          description: Project title
+          example: "Cloud Migration Assessment"
+    
+    AuthzPolicyInput:
+      type: object
+      required:
+        - input
+      properties:
+        input:
+          type: object
+          required:
+            - method
+            - path
+            - token
+          properties:
+            method:
+              type: string
+              enum: [GET, PUT, PATCH]
+              description: HTTP method
+              example: "GET"
+            path:
+              type: array
+              items:
+                type: string
+              description: URL path segments
+              example: ["user", "alice"]
+            token:
+              $ref: '#/components/schemas/JwtToken'
+    
+    JwtToken:
+      type: object
+      required:
+        - payload
+      properties:
+        payload:
+          type: object
+          required:
+            - sub
+            - roles
+          properties:
+            sub:
+              type: string
+              description: JWT subject (user identifier)
+              example: "alice"
+            roles:
+              type: array
+              items:
+                type: string
+              description: User roles
+              example: ["user"]
+            iat:
+              type: integer
+              description: Issued at timestamp
+              example: 1640995200
+            exp:
+              type: integer
+              description: Expiration timestamp
+              example: 1641081600
+    
+    DncPolicyResponse:
+      type: object
+      properties:
+        result:
+          type: boolean
+          description: Whether contact is allowed (true) or blocked (false)
+          example: true
+    
+    AuthzPolicyResponse:
+      type: object
+      properties:
+        result:
+          type: boolean
+          description: Whether access is allowed (true) or denied (false)
+          example: true
+
+tags:
+  - name: DNC Policy
+    description: Do Not Contact business logic policies
+  - name: Authorization Policy
+    description: JWT-based access control policies
