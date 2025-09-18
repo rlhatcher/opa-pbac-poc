@@ -180,6 +180,9 @@ Temporary Items
 
 # Playwright test results
 sam-app/test-results/
+pap-service/test-results/
+test-results/
+
 
 ### Windows ###
 # Windows thumbnail cache files

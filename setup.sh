@@ -13,6 +13,16 @@ if [ "$PAP_DEV_MODE" = "true" ]; then
     echo "🔥 Running in PAP Development Mode (Hot Reload Enabled)"
 fi
 
+# Kill any existing Docker containers to avoid conflicts
+docker-compose down 2>/dev/null || true
+
+# Kill any process running on port 3000 to avoid conflicts
+if lsof -ti:3000 >/dev/null 2>&1; then
+    echo "⚠️  Killing existing processes on port 3000..."
+    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+    sleep 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -28,7 +38,7 @@ check_service() {
     local attempt=1
 
     echo "⏳ Waiting for $service_name..."
-    
+
     while [ $attempt -le $max_attempts ]; do
         if curl -s "$url" > /dev/null 2>&1; then
             echo -e "${GREEN}✅ $service_name ready${NC}"
@@ -37,7 +47,7 @@ check_service() {
         sleep 2
         ((attempt++))
     done
-    
+
     echo -e "${YELLOW}⚠️  $service_name not ready, continuing...${NC}"
     return 1
 }
@@ -143,12 +153,14 @@ if [ "$PAP_DEV_MODE" = "true" ]; then
     cd ../pap-service
 
     # Install dependencies if needed
+    rmdir node_modules 2>/dev/null || true
     if [ ! -d "node_modules" ]; then
         echo "📦 Installing PAP service dependencies..."
         npm install
     fi
 
     # Install frontend dependencies if needed
+    rmdir frontend/node_modules 2>/dev/null || true
     if [ ! -d "frontend/node_modules" ]; then
         echo "📦 Installing PAP frontend dependencies..."
         cd frontend
@@ -177,11 +189,19 @@ fi
 echo -e "${BLUE}🧪 Running comprehensive tests...${NC}"
 
 # Install dependencies if needed
+rmdir opa-poc/node_modules 2>/dev/null || true
 if [ ! -d "opa-poc/node_modules" ]; then
     echo "📦 Installing dependencies..."
     cd opa-poc
     npm install
     cd ..
+fi
+
+# Install dependencies if needed
+rmdir node_modules 2>/dev/null || true
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing SAM App service dependencies..."
+    npm install
 fi
 
 # Run all tests
