@@ -105,14 +105,23 @@ The system demonstrates two distinct OPA policy use cases:
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js v20.19+ and npm
 - Docker and Docker Compose
 - AWS SAM CLI (optional, for Lambda testing)
+  - [Install the AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 
 ### One Command Setup
 
 ```bash
 ./setup.sh
+```
+
+or for local development
+
+```bash
+nvm use
+sam --version
+PAP_DEV_MODE=true ./setup.sh
 ```
 
 This command will:
